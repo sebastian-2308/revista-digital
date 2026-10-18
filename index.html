@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Visor de revista digital interactivo tipo flipbook con editor de texto en vivo y exportación a PDF.">
+  <meta name="theme-color" content="#0a0c10">
+
+  <title>Revista Digital · Flipbook</title>
+
+  <!-- ===== Tipografías (con respaldo del sistema si no hay conexión) ===== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- ===== Librerías (CDN) =====
+       · PDF.js (Mozilla): convierte cada página del PDF en un canvas/imagen.
+       · StPageFlip (page-flip): animación 3D de pliegue de hoja + táctil. -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" defer></script>
+  <!-- ===== Lógica de la aplicación (se carga tras las librerías) ===== -->
+  <script src="app.js" defer></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- Enlace de accesibilidad: saltar al contenido principal -->
+  <a class="salto-contenido" href="#zonaLibro">Saltar al visor</a>
+
+  <!-- =========================================================
+       BARRA SUPERIOR
+       ========================================================== -->
+  <header class="barra-superior">
+    <div class="marca">
+      <span class="marca__logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" class="icono">
+          <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v18H6.5A2.5 2.5 0 0 1 4 18.5v-13Z"/>
+          <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H12v18h5.5a2.5 2.5 0 0 0 2.5-2.5v-13Z"/>
+        </svg>
+      </span>
+      <span class="marca__texto">Revista<em>Digital</em></span>
+    </div>
+
+    <div class="edicion">
+      <!-- Cajetín editable: se guarda en el navegador -->
+      <span id="kickerEdicion" class="edicion__kicker" contenteditable="true" spellcheck="false"
+            role="textbox" aria-label="Cajetín de la edición, editable">Edición N.º 01 · Vol. 1</span>
+      <!-- Título editable directamente en pantalla -->
+      <h1 id="tituloEdicion" class="edicion__titulo" contenteditable="true" spellcheck="false"
+          role="textbox" aria-label="Título de la edición, editable">Horizontes</h1>
+    </div>
+
+    <div class="acciones">
+      <button id="btnEditar" class="boton" type="button" aria-pressed="false" title="Editar el texto de las páginas (capas sobre el PDF)">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
+        <span class="boton__texto">Editar texto</span>
+      </button>
+
+      <button id="btnExportar" class="boton boton--acento" type="button" title="Descargar la revista como PDF con los textos aplicados">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        <span class="boton__texto">Exportar</span>
+      </button>
+
+      <span class="acciones__sep" aria-hidden="true"></span>
+
+      <button id="btnSonido" class="boton boton--icono" type="button" aria-pressed="true" title="Activar o silenciar el sonido de página">
+        <svg viewBox="0 0 24 24" class="icono icono--sonido" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path class="sonido__onda" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="sonido__onda" d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      </button>
+
+      <button id="btnInfo" class="boton boton--icono" type="button" aria-expanded="false" aria-controls="panelInfo" title="Descripción e información de la edición">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       VISOR PRINCIPAL
+       ========================================================== -->
+  <main class="visor" id="visor">
+
+    <!-- Zona centrada donde StPageFlip inserta el libro -->
+    <div class="zona-libro" id="zonaLibro">
+      <div class="contenedor-libro" id="contenedorLibro"></div>
+    </div>
+
+    <!-- Línea de progreso fina (parte superior del visor) -->
+    <div class="linea-progreso" id="lineaProgreso" hidden><span id="barraProgreso"></span></div>
+
+    <!-- Aviso del modo edición -->
+    <p class="chip-modo" id="chipModo" hidden>
+      <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
+      Modo edición: haz clic sobre una página para escribir encima · <kbd>Esc</kbd> para salir
+    </p>
+
+    <!-- Barra de herramientas de las capas de texto (solo en modo edición) -->
+    <div class="barra-capas" id="barraCapas" role="toolbar" aria-label="Herramientas de texto" hidden>
+      <select id="capaFuente" class="campo campo--select" aria-label="Tipografía">
+        <option value="Fraunces, Georgia, serif">Editorial</option>
+        <option value="Inter, system-ui, sans-serif">Moderna</option>
+        <option value="Georgia, 'Times New Roman', serif">Clásica</option>
+        <option value="'Courier New', monospace">Mecanografía</option>
+      </select>
+
+      <div class="campo campo--grupo">
+        <button class="boton boton--mini" type="button" id="capaMenos" aria-label="Reducir el tamaño">A−</button>
+        <span class="campo__valor" id="capaTamano">3 %</span>
+        <button class="boton boton--mini" type="button" id="capaMas" aria-label="Aumentar el tamaño">A+</button>
+      </div>
+
+      <button class="boton boton--icono boton--mini" type="button" id="capaNegrita" aria-pressed="false" aria-label="Negrita"><strong>N</strong></button>
+      <button class="boton boton--icono boton--mini" type="button" id="capaCursiva" aria-pressed="false" aria-label="Cursiva"><em>K</em></button>
+
+      <label class="campo campo--color" title="Color del texto">
+        <input type="color" id="capaColor" value="#14161c">
+      </label>
+
+      <button class="boton boton--icono boton--mini" type="button" id="capaDuplicar" aria-label="Duplicar la capa">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+
+      <button class="boton boton--icono boton--mini boton--peligro" type="button" id="capaBorrar" aria-label="Borrar la capa">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      </button>
+    </div>
+
+    <!-- Indicador de arrastre de archivos -->
+    <div class="zona-arrastre" id="zonaArrastre" aria-hidden="true">
+      <span>Suelta aquí tu archivo <strong>.pdf</strong></span>
+    </div>
+
+    <!-- Overlay de carga -->
+    <div class="overlay" id="overlayCarga" role="status" aria-live="polite">
+      <div class="overlay__caja">
+        <div class="girador" aria-hidden="true"></div>
+        <p class="overlay__texto" id="textoCarga">Cargando revista…</p>
+        <p class="overlay__detalle" id="detalleCarga">Preparando las páginas</p>
+      </div>
+    </div>
+
+    <!-- Overlay de "no hay PDF": instrucciones + selector manual -->
+    <div class="overlay oculto" id="panelArchivo">
+      <div class="overlay__caja overlay__caja--ancha" role="dialog" aria-labelledby="panelArchivoTitulo">
+        <h2 id="panelArchivoTitulo">No se encontró <code>assets/revista.pdf</code></h2>
+        <p>
+          Coloca tu archivo en esa ruta, <strong>arrástralo</strong> a esta ventana
+          o selecciónalo manualmente desde tu equipo:
+        </p>
+
+        <label class="boton boton--principal" for="inputArchivo">Elegir archivo PDF…</label>
+        <input type="file" id="inputArchivo" accept="application/pdf,.pdf" hidden>
+
+        <p class="nota">
+          Si abriste el <code>index.html</code> con doble clic, el navegador bloquea la
+          lectura local de archivos. Para evitarlo, ejecuta un servidor local en la carpeta
+          del proyecto (por ejemplo <code>python -m http.server</code> o <code>npx serve</code>)
+          y abre <code>http://localhost:8000</code>.
+        </p>
+
+        <button class="boton" type="button" id="btnReintentar">Reintentar con assets/revista.pdf</button>
+      </div>
+    </div>
+
+    <!-- Riel de miniaturas (navegación visual) -->
+    <div class="rail" id="railMiniaturas" hidden>
+      <div class="rail__lista" id="miniaturas" role="tablist" aria-label="Miniaturas de páginas"></div>
+    </div>
+
+    <!-- Dock flotante de controles -->
+    <div class="dock" id="dock">
+      <button id="btnAnterior" class="boton boton--icono" type="button" disabled aria-label="Página anterior">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+
+      <div class="dock__paginas">
+        <span id="indicadorPagina" class="indicador" aria-live="polite">— / —</span>
+        <input type="range" id="sliderPagina" class="slider" min="1" max="1" value="1" step="1" aria-label="Ir a la página">
+      </div>
+
+      <button id="btnSiguiente" class="boton boton--icono" type="button" disabled aria-label="Página siguiente">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+
+      <span class="dock__sep" aria-hidden="true"></span>
+
+      <button id="btnRail" class="boton boton--icono" type="button" aria-pressed="false" aria-controls="railMiniaturas" title="Ver miniaturas">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+      </button>
+
+      <button id="btnPantallaCompleta" class="boton boton--icono" type="button" title="Pantalla completa (tecla F)">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+    </div>
+  </main>
+
+  <!-- =========================================================
+       PANEL LATERAL: descripción e información de la edición
+       ========================================================== -->
+  <div class="fondo-panel" id="fondoPanel" hidden></div>
+
+  <aside id="panelInfo" class="panel-info" aria-hidden="true" aria-labelledby="panelInfoTitulo">
+    <header class="panel-info__cabecera">
+      <div>
+        <p class="epigrafe">Ficha de la edición</p>
+        <h2 id="panelInfoTitulo">Información</h2>
+      </div>
+      <button id="btnCerrarInfo" class="boton boton--icono" type="button" aria-label="Cerrar el panel">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </header>
+
+    <div class="panel-info__cuerpo">
+      <section>
+        <h3>Descripción</h3>
+        <!-- Texto editable: se guarda automáticamente en el navegador -->
+        <div id="textoInfo" class="texto-editable" contenteditable="true" spellcheck="false"
+             role="textbox" aria-multiline="true" aria-label="Descripción de la edición, editable"></div>
+        <div class="fila-botones">
+          <button id="btnRestaurarInfo" class="boton boton--suave" type="button">Restaurar descripción</button>
+          <button id="btnBorrarCapas" class="boton boton--suave" type="button">Borrar textos añadidos</button>
+        </div>
+      </section>
+
+      <section>
+        <h3>Datos del archivo</h3>
+        <dl class="datos">
+          <dt>Archivo</dt>  <dd id="datoArchivo">—</dd>
+          <dt>Páginas</dt>  <dd id="datoPaginas">—</dd>
+          <dt>Peso</dt>     <dd id="datoFormato">—</dd>
+          <dt>Cargado</dt>  <dd id="datoFecha">—</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3>Textos añadidos</h3>
+        <dl class="datos">
+          <dt>Capas en la revista</dt> <dd id="datoCapas">0</dd>
+          <dt>Páginas modificadas</dt> <dd id="datoPaginasCapas">0</dd>
+        </dl>
+        <p class="nota">
+          Los textos que escribas sobre las páginas se guardan en tu navegador y se aplican
+          al exportar el PDF con el botón <strong>Exportar</strong>.
+        </p>
+      </section>
+    </div>
+  </aside>
+
+  <!-- Aviso flotante (errores, sugerencias…) -->
+  <div class="aviso" id="aviso" role="alert"></div>
+</body>
+</html>

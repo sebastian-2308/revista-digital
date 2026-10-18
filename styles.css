@@ -1,0 +1,935 @@
+/* =====================================================================
+ * REVISTA DIGITAL · FLIPBOOK
+ * styles.css — Estética editorial premium, modo oscuro, Flexbox/Grid
+ * ---------------------------------------------------------------------
+ * 1.  Variables y reset
+ * 2.  Utilidades (iconos, epígrafes, textos)
+ * 3.  Estructura general y fondo
+ * 4.  Barra superior
+ * 5.  Botones y campos
+ * 6.  Visor, libro y páginas
+ * 7.  Capas de texto (edición en vivo)
+ * 8.  Dock de controles, slider y miniaturas
+ * 9.  Barra de herramientas de capas
+ * 10. Overlays (carga y "no hay PDF")
+ * 11. Panel lateral de información
+ * 12. Avisos flotantes
+ * 13. Responsive, accesibilidad y pantalla completa
+ * ===================================================================== */
+
+/* ---------------------------------------------------------------------
+ * 1. VARIABLES Y RESET
+ * ------------------------------------------------------------------- */
+:root {
+  /* Paleta */
+  --tinta-0: #070910;        /* fondo profundo */
+  --tinta-1: #0c0f16;        /* fondo de la aplicación */
+  --sup-1: #111520;          /* superficies */
+  --sup-2: #171c29;
+  --sup-3: #1e2432;
+  --borde: rgba(255, 255, 255, .09);
+  --borde-fuerte: rgba(255, 255, 255, .16);
+  --texto-1: #eef1f6;
+  --texto-2: #9aa4b6;
+  --texto-3: #6c768b;
+  --acento: #e6b450;         /* dorado editorial */
+  --acento-suave: rgba(230, 180, 80, .16);
+  --frio: #7c8cff;           /* acento frío (edición) */
+  --frio-suave: rgba(124, 140, 255, .18);
+  --peligro: #ff6b6b;
+  --papel: #fbf8f3;          /* color del papel del libro */
+  --radio: 14px;
+  --radio-alto: 20px;
+  --sombra-alta: 0 24px 60px rgba(0, 0, 0, .55);
+  --sombra-media: 0 10px 30px rgba(0, 0, 0, .38);
+  --curva: cubic-bezier(.22, .8, .28, 1);
+
+  /* Tipografías */
+  --fuente-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --fuente-display: "Fraunces", Georgia, "Times New Roman", serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: flex;               /* barra superior + visor */
+  flex-direction: column;
+  background: var(--tinta-1);
+  color: var(--texto-1);
+  font-family: var(--fuente-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Aura decorativa de fondo (detrás de todo) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -30vh -10% auto;
+  height: 70vh;
+  background:
+    radial-gradient(48% 55% at 26% 20%, rgba(124, 140, 255, .22), transparent 70%),
+    radial-gradient(42% 50% at 78% 12%, rgba(230, 180, 80, .16), transparent 72%);
+  filter: blur(30px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+h1, h2, h3, p, dl, dd, figure { margin: 0; }
+
+code, kbd {
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: .88em;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.salto-contenido {
+  position: absolute;
+  left: -9999px;
+  top: 10px;
+  z-index: 999;
+  background: var(--acento);
+  color: #14161c;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  text-decoration: none;
+}
+.salto-contenido:focus { left: 10px; }
+
+/* ---------------------------------------------------------------------
+ * 2. UTILIDADES
+ * ------------------------------------------------------------------- */
+.icono {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.marca__logo .icono { fill: currentColor; stroke: none; }
+
+.epigrafe {
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--texto-3);
+}
+
+.nota {
+  font-size: .78rem;
+  line-height: 1.6;
+  color: var(--texto-3);
+}
+
+/* ---------------------------------------------------------------------
+ * 3. ESTRUCTURA GENERAL
+ * ------------------------------------------------------------------- */
+.visor {
+  position: relative;          /* permite montar dock, overlays y paneles encima */
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  z-index: 1;
+}
+
+.zona-libro {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 2vw, 28px);
+  padding-bottom: clamp(84px, 12vh, 120px);   /* deja sitio al dock */
+  overflow: hidden;
+}
+
+.contenedor-libro {
+  width: 600px;                /* lo recalcula app.js */
+  max-width: 100%;
+}
+
+/* ---------------------------------------------------------------------
+ * 4. BARRA SUPERIOR
+ * ------------------------------------------------------------------- */
+.barra-superior {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 2vw, 22px);
+  padding: 10px clamp(12px, 3vw, 24px);
+  background: linear-gradient(180deg, rgba(17, 21, 32, .92), rgba(12, 15, 22, .78));
+  border-bottom: 1px solid var(--borde);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.marca__logo {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #14161c;
+  background: linear-gradient(140deg, var(--acento), #c98f2e);
+  box-shadow: 0 6px 18px rgba(230, 180, 80, .28);
+}
+.marca__texto {
+  font-family: var(--fuente-display);
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+.marca__texto em {
+  font-style: normal;
+  color: var(--acento);
+}
+
+/* Bloque de la edición: cajetín + título editables */
+.edicion {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.edicion__kicker,
+.edicion__titulo {
+  padding: 2px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color .2s ease, background .2s ease;
+}
+.edicion__kicker {
+  font-size: .66rem;
+  font-weight: 600;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--acento);
+  cursor: text;
+}
+.edicion__titulo {
+  font-family: var(--fuente-display);
+  font-size: clamp(1.02rem, 2.6vw, 1.35rem);
+  font-weight: 600;
+  letter-spacing: .3px;
+  line-height: 1.2;
+  cursor: text;
+}
+.edicion__kicker:hover,
+.edicion__titulo:hover { border-color: var(--borde); }
+.edicion__kicker:focus,
+.edicion__titulo:focus {
+  outline: none;
+  background: var(--sup-2);
+  border-color: var(--acento);
+  white-space: normal;
+}
+
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.acciones__sep {
+  width: 1px;
+  height: 22px;
+  background: var(--borde);
+  margin: 0 2px;
+}
+
+/* ---------------------------------------------------------------------
+ * 5. BOTONES Y CAMPOS
+ * ------------------------------------------------------------------- */
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: .86rem;
+  font-weight: 600;
+  color: var(--texto-1);
+  background: var(--sup-2);
+  border: 1px solid var(--borde);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, transform .12s ease,
+              color .18s ease, box-shadow .2s ease, opacity .2s ease;
+  user-select: none;
+}
+.boton:hover:not(:disabled) { background: var(--sup-3); border-color: var(--borde-fuerte); }
+.boton:active:not(:disabled) { transform: translateY(1px) scale(.985); }
+.boton:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.boton:disabled { opacity: .35; cursor: not-allowed; }
+
+.boton--icono { min-width: 38px; padding: 8px; }
+.boton--mini { min-height: 30px; padding: 4px 9px; font-size: .78rem; border-radius: 9px; }
+.boton--mini .icono { width: 16px; height: 16px; }
+
+.boton--acento {
+  background: linear-gradient(140deg, var(--acento), #cf9433);
+  border-color: transparent;
+  color: #14161c;
+  box-shadow: 0 8px 22px rgba(230, 180, 80, .22);
+}
+.boton--acento:hover:not(:disabled) { background: linear-gradient(140deg, #f0c269, #d99e3c); }
+
+.boton--principal {
+  background: linear-gradient(140deg, var(--frio), #5b6ce0);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(124, 140, 255, .25);
+}
+.boton--principal:hover { background: linear-gradient(140deg, #8e9cff, #6a7ae8); }
+
+.boton--suave { background: transparent; color: var(--texto-2); font-weight: 500; }
+.boton--suave:hover { color: var(--texto-1); background: var(--sup-2); }
+.boton--peligro { color: var(--peligro); }
+.boton--peligro:hover { background: rgba(255, 107, 107, .12); border-color: rgba(255, 107, 107, .4); }
+
+/* Botón activo (modo edición, sonido, etc.) */
+.boton[aria-pressed="true"] {
+  background: var(--frio-suave);
+  border-color: rgba(124, 140, 255, .5);
+  color: #cfd6ff;
+}
+.boton--acento[aria-pressed="true"] {
+  background: linear-gradient(140deg, var(--acento), #cf9433);
+  color: #14161c;
+}
+
+/* Estado sin ondas del sonido */
+.boton[aria-pressed="false"] .sonido__onda { display: none; }
+
+.campo--select,
+.campo {
+  font: inherit;
+  font-size: .8rem;
+  color: var(--texto-1);
+  background: var(--sup-3);
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  padding: 6px 8px;
+  min-height: 30px;
+}
+.campo--select { cursor: pointer; }
+.campo--select:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.campo--grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+}
+.campo__valor {
+  min-width: 46px;
+  text-align: center;
+  font-size: .76rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-2);
+}
+.campo--color {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  cursor: pointer;
+}
+.campo--color input[type="color"] {
+  width: 30px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------
+ * 6. VISOR, LIBRO Y PÁGINAS
+ * ------------------------------------------------------------------- */
+
+/* Papel del libro */
+.pagina {
+  position: relative;
+  background: var(--papel);
+  overflow: hidden;
+  box-shadow: inset 0 0 60px rgba(90, 70, 40, .07);
+}
+
+.pagina__imagen {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--papel);
+  pointer-events: none;         /* los gestos los gestiona StPageFlip */
+  user-select: none;
+}
+
+.pagina__espera {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  background:
+    linear-gradient(100deg, #f3efe8 30%, #faf7f1 50%, #f3efe8 70%);  /* shimmer */
+  background-size: 220% 100%;
+  animation: resplandor 1.4s ease-in-out infinite;
+  color: #8b8478;
+  font-size: .76rem;
+  letter-spacing: .06em;
+}
+.pagina__spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid rgba(0, 0, 0, .12);
+  border-top-color: var(--acento);
+  border-radius: 50%;
+  animation: girar 1s linear infinite;
+}
+@keyframes resplandor { from { background-position: 120% 0; } to { background-position: -20% 0; } }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.pagina__error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  text-align: center;
+  color: #8b8478;
+  font-size: .82rem;
+  background: #f3efe8;
+}
+
+/* Modo edición: las páginas se pueden tocar */
+.modo-edicion .pagina { cursor: text; }
+.modo-edicion .pagina:hover { box-shadow: inset 0 0 0 2px rgba(230, 180, 80, .55); }
+.modo-edicion .pagina__imagen { pointer-events: none; }
+
+/* Zona-arrastre de archivos */
+.zona-arrastre {
+  position: absolute;
+  inset: 14px;
+  display: none;
+  place-items: center;
+  border: 2px dashed var(--acento);
+  border-radius: var(--radio-alto);
+  background: rgba(7, 9, 16, .8);
+  color: var(--texto-1);
+  font-family: var(--fuente-display);
+  font-size: 1.2rem;
+  z-index: 6;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+body.arrastrando .zona-arrastre { display: grid; }
+
+/* Línea de progreso fina superior */
+.linea-progreso {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, .06);
+  z-index: 7;
+  overflow: hidden;
+}
+.linea-progreso span {
+  display: block;
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--frio), var(--acento));
+  transition: width .3s ease;
+}
+
+/* Chip de modo edición */
+.chip-modo {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: .78rem;
+  color: #14161c;
+  background: linear-gradient(140deg, var(--acento), #d99e3c);
+  border-radius: 999px;
+  box-shadow: var(--sombra-media);
+  animation: aparecer .25s var(--curva);
+}
+.chip-modo .icono { width: 16px; height: 16px; }
+
+/* ---------------------------------------------------------------------
+ * 7. CAPAS DE TEXTO (edición en vivo)
+ * ------------------------------------------------------------------- */
+.capa {
+  position: absolute;
+  z-index: 3;
+  min-width: 3%;
+  padding: .3em .45em;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.capa__texto {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  line-height: 1.25;
+  outline: none;
+  cursor: inherit;
+}
+
+/* En modo lectura las capas no interceptan los gestos del libro */
+:not(.modo-edicion) .capa { pointer-events: none; }
+
+/* En modo edición: comportamiento de "caja de texto" */
+.modo-edicion .capa { cursor: move; }
+.modo-edicion .capa:hover { border-color: rgba(124, 140, 255, .6); background: rgba(124, 140, 255, .06); }
+.modo-edicion .capa.seleccionada {
+  border-color: var(--frio);
+  border-style: solid;
+  background: rgba(124, 140, 255, .08);
+  box-shadow: 0 0 0 3px rgba(124, 140, 255, .18);
+}
+.modo-edicion .capa.seleccionada .capa__texto { cursor: text; }
+.capa__etiqueta {
+  position: absolute;
+  top: -1.55em;
+  left: 0;
+  font-family: var(--fuente-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--frio);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+:not(.modo-edicion) .capa__etiqueta { display: none; }
+
+/* ---------------------------------------------------------------------
+ * 8. DOCK DE CONTROLES, SLIDER Y MINIATURAS
+ * ------------------------------------------------------------------- */
+.dock {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(17, 21, 32, .82);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  box-shadow: var(--sombra-alta);
+  backdrop-filter: blur(16px) saturate(150%);
+  animation: aparecer .35s var(--curva);
+}
+
+.dock__paginas {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.indicador {
+  min-width: 104px;
+  text-align: center;
+  font-size: .82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-1);
+  letter-spacing: .02em;
+}
+.dock__sep { width: 1px; height: 22px; background: var(--borde); }
+
+/* Deslizador de páginas */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: clamp(90px, 14vw, 190px);
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--acento) var(--progreso, 0%), rgba(255, 255, 255, .12) var(--progreso, 0%));
+  cursor: pointer;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--acento);
+  border: 2px solid #14161c;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .5);
+  transition: transform .15s ease;
+}
+.slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #14161c;
+  border-radius: 50%;
+  background: var(--acento);
+}
+.slider:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Riel de miniaturas */
+.rail {
+  position: absolute;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  z-index: 6;
+  max-width: min(920px, calc(100% - 28px));
+  padding: 10px;
+  background: rgba(17, 21, 32, .88);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-alto);
+  box-shadow: var(--sombra-alta);
+  backdrop-filter: blur(16px) saturate(150%);
+  animation: aparecer .25s var(--curva);
+}
+.rail__lista {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sup-3) transparent;
+}
+.rail__lista::-webkit-scrollbar { height: 6px; }
+.rail__lista::-webkit-scrollbar-thumb { background: var(--sup-3); border-radius: 999px; }
+
+.miniatura {
+  position: relative;
+  flex: none;
+  width: 58px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--papel);
+  cursor: pointer;
+  opacity: .62;
+  transition: opacity .18s ease, border-color .18s ease, transform .18s ease;
+}
+.miniatura:hover { opacity: 1; transform: translateY(-2px); }
+.miniatura:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.miniatura.activa { opacity: 1; border-color: var(--acento); }
+.miniatura img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.miniatura__num {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  min-width: 16px;
+  padding: 0 4px;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  background: rgba(10, 12, 18, .78);
+  border-radius: 5px;
+}
+.miniatura__espera {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  color: #9a9386;
+  background: #efeae1;
+}
+
+/* ---------------------------------------------------------------------
+ * 9. BARRA DE HERRAMIENTAS DE CAPAS
+ * ------------------------------------------------------------------- */
+.barra-capas {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: calc(100% - 28px);
+  padding: 7px 10px;
+  background: rgba(17, 21, 32, .9);
+  border: 1px solid rgba(124, 140, 255, .35);
+  border-radius: 999px;
+  box-shadow: var(--sombra-alta);
+  backdrop-filter: blur(16px) saturate(150%);
+  animation: aparecer .2s var(--curva);
+}
+
+/* ---------------------------------------------------------------------
+ * 10. OVERLAYS
+ * ------------------------------------------------------------------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(7, 9, 16, .78);
+  backdrop-filter: blur(10px);
+  z-index: 8;
+  transition: opacity .3s ease, visibility .3s;
+}
+.overlay.oculto { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.overlay__caja {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 430px;
+  padding: 30px 34px;
+  text-align: center;
+  background: linear-gradient(180deg, var(--sup-2), var(--sup-1));
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-alto);
+  box-shadow: var(--sombra-alta);
+  animation: aparecer .3s var(--curva);
+}
+.overlay__caja--ancha { max-width: 540px; text-align: left; align-items: stretch; }
+.overlay__caja--ancha h2 {
+  font-family: var(--fuente-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-align: center;
+}
+.overlay__caja--ancha .boton { align-self: center; }
+.overlay__texto { font-size: .95rem; font-weight: 500; }
+.overlay__detalle { font-size: .78rem; color: var(--texto-3); }
+
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+.girador {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .12);
+  border-top-color: var(--acento);
+  animation: girar 1s linear infinite;
+}
+
+/* ---------------------------------------------------------------------
+ * 11. PANEL LATERAL DE INFORMACIÓN
+ * ------------------------------------------------------------------- */
+.fondo-panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 12, .6);
+  backdrop-filter: blur(3px);
+  z-index: 9;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .28s ease;
+}
+.fondo-panel.visible { opacity: 1; pointer-events: auto; }
+
+.panel-info {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(400px, 92vw);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--sup-2), var(--sup-1));
+  border-left: 1px solid var(--borde);
+  box-shadow: var(--sombra-alta);
+  transform: translateX(102%);
+  transition: transform .34s var(--curva);
+  z-index: 10;
+}
+.panel-info.abierto { transform: translateX(0); }
+
+.panel-info__cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--borde);
+}
+.panel-info__cabecera h2 {
+  font-family: var(--fuente-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.panel-info__cuerpo {
+  padding: 6px 18px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.panel-info__cuerpo section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--borde);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.panel-info__cuerpo section:last-child { border-bottom: none; }
+.panel-info__cuerpo h3 {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--texto-3);
+}
+.fila-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.texto-editable {
+  min-height: 130px;
+  padding: 12px 14px;
+  white-space: pre-wrap;
+  line-height: 1.65;
+  font-size: .9rem;
+  color: var(--texto-1);
+  background: var(--sup-1);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  transition: border-color .2s ease, box-shadow .2s ease;
+  cursor: text;
+}
+.texto-editable:hover { border-color: var(--borde-fuerte); }
+.texto-editable:focus {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-suave);
+}
+
+.datos {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px 14px;
+  font-size: .85rem;
+  padding: 12px 14px;
+  background: var(--sup-1);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+.datos dt { color: var(--texto-3); }
+.datos dd { margin: 0; text-align: right; word-break: break-all; font-weight: 500; }
+
+/* ---------------------------------------------------------------------
+ * 12. AVISOS FLOTANTES
+ * ------------------------------------------------------------------- */
+.aviso {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  transform: translate(-50%, 14px);
+  max-width: min(560px, 92vw);
+  padding: 12px 18px;
+  font-size: .86rem;
+  line-height: 1.5;
+  background: rgba(23, 28, 41, .95);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--peligro);
+  border-radius: 12px;
+  box-shadow: var(--sombra-alta);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s ease, transform .25s ease, visibility .25s;
+  z-index: 20;
+}
+.aviso.visible { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+.aviso.informativo { border-left-color: var(--acento); }
+
+/* ---------------------------------------------------------------------
+ * 13. RESPONSIVE, ACCESIBILIDAD Y PANTALLA COMPLETA
+ * ------------------------------------------------------------------- */
+@media (max-width: 860px) {
+  .acciones .boton__texto { display: none; }     /* solo iconos */
+  .acciones .boton { padding: 8px 10px; min-width: 38px; }
+}
+
+@media (max-width: 680px) {
+  .marca__texto { display: none; }
+  .barra-superior { gap: 8px; padding: 8px 10px; }
+  .edicion { align-items: flex-start; }
+  .edicion__kicker { font-size: .6rem; letter-spacing: .14em; }
+  .indicador { min-width: 84px; font-size: .76rem; }
+  .slider { width: 74px; }
+  .dock { gap: 6px; padding: 7px 9px; bottom: 12px; }
+  .rail { bottom: 74px; }
+  .aviso { bottom: 86px; }
+  .chip-modo { font-size: .7rem; padding: 6px 10px; max-width: calc(100% - 28px); }
+  .barra-capas { gap: 4px; padding: 6px 8px; }
+}
+
+@media (max-width: 400px) {
+  .dock__sep, #btnRail { display: none; }        /* dock más compacto */
+}
+
+/* Respeta a quien prefiera menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* Contraste reforzado si el sistema lo pide */
+@media (prefers-contrast: more) {
+  :root { --borde: rgba(255, 255, 255, .28); --texto-2: #c3ccdb; --texto-3: #a6b0c2; }
+}
+
+/* Pantalla completa */
+.visor:fullscreen,
+.visor:-webkit-full-screen {
+  background:
+    radial-gradient(60% 60% at 50% 0%, rgba(124, 140, 255, .12), transparent 70%),
+    var(--tinta-0);
+  padding-bottom: 0;
+}
+.visor:fullscreen .dock { bottom: 26px; }
