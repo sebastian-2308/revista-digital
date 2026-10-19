@@ -1412,6 +1412,50 @@ body.modo-edicion [data-bloque] .bloque__ocultar { display: grid; }
   color: var(--peligro);
 }
 
+/* El panel de edición pasa al lateral derecho en pantallas de escritorio:
+   el contenido reserva ese espacio, así que la barra no tapa nada. */
+@media (min-width: 901px) {
+  body.modo-edicion .sitio {
+    width: calc(100% - 252px);
+    padding-bottom: 0;
+  }
+
+  .barra-edicion {
+    left: auto;
+    right: 16px;
+    top: calc(var(--alto-barra) + 16px);
+    bottom: auto;
+    transform: none;
+    flex-direction: column;
+    align-items: stretch;
+    width: 220px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - var(--alto-barra) - 32px);
+    overflow-y: auto;
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .barra-edicion__ayuda {
+    max-width: none;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--borde);
+  }
+
+  .barra-edicion__botones {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .barra-edicion__botones .boton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ==================== 15. EDITOR DE TEXTO (CAPAS) ======================= */
 .barra-capas {
   top: calc(var(--alto-barra) + 12px);

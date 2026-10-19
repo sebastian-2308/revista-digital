@@ -22,6 +22,9 @@ cualquiera.
 
 ### 1. Modo edición del sitio (botón «Editar sitio»)
 
+- **Panel lateral**: en escritorio, los controles de edición aparecen en una
+  barra lateral derecha que no tapa el contenido (el sitio reserva ese
+  espacio). En móvil se muestra abajo, como antes.
 - **Textos**: pulsa cualquier texto marcado y escribe (se guarda solo).
 - **Fotos**: botón «Cambiar foto» en cada hueco; la imagen se recorta y
   comprime a medida.
