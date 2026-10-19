@@ -1664,3 +1664,74 @@ body.modo-texto .capa__texto { cursor: text; }
   .plantillas { grid-template-columns: 1fr; }
   .overlay__caja--plantillas { padding: 20px 16px; }
 }
+
+/* =========================================================
+   18. CONTENIDO LARGO: LECTURA, CITAS Y TABLAS
+   ========================================================= */
+.bloques--lectura {
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+}
+
+.bloques--lectura .bloque > p,
+.bloques--lectura .bloque > blockquote {
+  max-width: 72ch;
+}
+
+.bloque--ancho { grid-column: 1 / -1; }
+
+.bloque p + p,
+.bloque .lista-puntos + p,
+.bloque blockquote + p {
+  margin-top: 12px;
+}
+
+.bloque blockquote {
+  margin-bottom: 10px;
+  padding-left: 14px;
+  border-left: 2px solid var(--acento);
+  font-family: var(--fuente-display);
+  font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+  line-height: 1.55;
+  color: var(--texto);
+}
+
+.bloque .cita-autor { margin: 0 0 12px; }
+.bloque .lista-puntos { margin-top: 10px; }
+.bloque .foto { margin-bottom: 14px; }
+
+.tabla-envoltura {
+  margin-top: 16px;
+  overflow-x: auto;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.tabla th,
+.tabla td {
+  padding: 10px 13px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--borde);
+}
+
+.tabla th {
+  background: var(--superficie-2);
+  color: var(--acento);
+  font-weight: 600;
+}
+
+.tabla td { color: var(--texto-2); line-height: 1.5; }
+
+.tabla tbody tr:last-child td { border-bottom: 0; }
+
+.rejilla-testimonios { margin-bottom: clamp(28px, 5vw, 48px); }
+
+@media (max-width: 560px) {
+  .bloques--lectura { grid-template-columns: 1fr; }
+}

@@ -6,8 +6,10 @@ lector flipbook con efecto 3D de paso de página. Tres archivos principales
 (`index.html`, `styles.css`, `app.js`), sin build ni dependencias locales: se
 abre y funciona.
 
-> El sitio se entrega con **textos de guía y huecos de foto**: el equipo pone
-> sus propias palabras, fotos y enlaces desde el modo edición, sin tocar código.
+> El sitio se entrega con **el contenido del grupo ya escrito** —Inicio,
+> Testimonios, Nuestras misiones, Extensión, Consejos e Información— y
+> **huecos de foto**: el equipo cambia textos, fotos y enlaces desde el modo
+> edición, sin tocar código.
 
 ## Secciones del sitio
 
