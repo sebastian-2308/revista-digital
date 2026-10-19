@@ -18,6 +18,19 @@ Información · Biblioteca. Cada sección se muestra con un hash
 (`#/inicio`, `#/testimonios`…), así que se puede enlazar directamente a
 cualquiera.
 
+## Estética editorial (sin peso extra)
+
+- **Tipografías variables** (Fraunces + Inter): una sola petición por familia y
+  el navegador descarga solo los subconjuntos que usa, en lugar de un archivo
+  por peso.
+- **Detalles de revista solo con CSS**: numeración de secciones (01–06), línea
+  de cierre, foto del héroe con marco desplazado, comillas decorativas y autor
+  en versalitas en los testimonios, filo dorado en las llamadas, trama y
+  esquinas en los huecos de foto, y rombo en el pie.
+- **Sin imágenes de adorno, iconos externos ni librerías de animación**: el
+  acabado no añade peso y respeta `prefers-reduced-motion`. Las transiciones
+  son de 150–200 ms.
+
 ## Dos formas de edición (100 % editable)
 
 ### 1. Modo edición del sitio (botón «Editar sitio»)
@@ -178,4 +191,7 @@ Suites jsdom (50 + 14 + 64 + 14 aserciones) que cubren estantería, filtros,
 apertura, navegación, panel, sonido, miniaturas, publicación, el modo
 `file://`, las rutas del sitio, el modo edición del sitio (con la galería de
 bloques predefinidos), el editor de capas sobre páginas, la resiliencia sin
-CDN y la exportación del PDF editado.
+CDN y la exportación del PDF editado. Además, una comprobación visual con
+Chrome headless (42 aserciones) verifica números de sección, fuentes, trama de
+los huecos, ausencia de desbordes de 390 a 1440 px y el panel lateral de
+edición.
