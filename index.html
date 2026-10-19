@@ -15,10 +15,15 @@
 
   <!-- ===== Librerías (CDN) =====
        · PDF.js (Mozilla): convierte cada página del PDF en canvas/imagen.
-       · StPageFlip (page-flip): animación 3D de pliegue de hoja + táctil. -->
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" defer></script>
-  <script src="app.js?v=6" defer></script>
+       · StPageFlip (page-flip): animación 3D de pliegue de hoja + táctil.
+       Van con `async` (y no con `defer`) para que NUNCA bloqueen el arranque
+       de app.js: si el CDN tarda o está bloqueado, el sitio, las rutas y el
+       modo edición funcionan igual; las librerías solo se esperan (con un
+       tiempo máximo) en el momento exacto en que se abren o publican PDF. -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" async></script>
+  <script src="app.js?v=7" defer></script>
 
   <link rel="stylesheet" href="styles.css?v=6">
 </head>
@@ -516,7 +521,7 @@
   </div>
 
   <!-- Overlay de carga -->
-  <div class="overlay" id="overlayCarga" role="status" aria-live="polite">
+  <div class="overlay oculto" id="overlayCarga" role="status" aria-live="polite">
     <div class="overlay__caja">
       <div class="girador" aria-hidden="true"></div>
       <p class="overlay__texto" id="textoCarga">Cargando…</p>

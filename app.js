@@ -547,9 +547,37 @@ function renderizarEstanteria() {
 
 /* ========================= 8. PUBLICAR UN PDF ============================= */
 
+/* --- Librerías del CDN -----------------------------------------------------
+   pdf.min.js y page-flip van con `async` en el HTML, así que pueden llegar
+   tarde (o nunca, si no hay conexión). Estas funciones esperan a que estén
+   disponibles con un tiempo máximo, en vez de fallar con un ReferenceError. */
+
+/** Espera a que una librería del CDN esté disponible (máx. `msMax` ms). */
+async function esperarLibreria(obtener, nombre, msMax = 10000) {
+  const inicio = Date.now();
+  let lib = obtener();
+  while (!lib) {
+    if (Date.now() - inicio >= msMax) {
+      throw new Error('No se pudo cargar «' + nombre + '» (¿sin conexión a Internet?).');
+    }
+    await new Promise((resolver) => setTimeout(resolver, 150));
+    lib = obtener();
+  }
+  return lib;
+}
+
+/** Devuelve PDF.js listo para usar (con el worker configurado). */
+async function obtenerPdfjs(msMax) {
+  const lib = await esperarLibreria(() => window.pdfjsLib, 'PDF.js', msMax);
+  lib.GlobalWorkerOptions.workerSrc = RUTA_PDFJS + 'pdf.worker.min.js';
+  return lib;
+}
+
 /** Genera portada (dataURL) y nº de páginas de un PDF. */
 async function generarPortada(bytesCopia) {
-  const carga = pdfjsLib.getDocument({ data: bytesCopia });
+  const pdfjs = window.pdfjsLib;
+  if (!pdfjs) throw new Error('PDF.js no está disponible.');
+  const carga = pdfjs.getDocument({ data: bytesCopia });
   const doc = await carga.promise;
   const pagina = await doc.getPage(1);
   const vp = pagina.getViewport({ scale: 1 });
@@ -576,13 +604,16 @@ async function publicarPDF(archivo) {
   const esPdf = archivo.type === 'application/pdf' || /\.pdf$/i.test(archivo.name || '');
   if (!esPdf) { avisar('Solo se pueden publicar archivos PDF.', true); return; }
   if (estado.publicando) return;
-  if (!pdfjsLib) { avisar('PDF.js no está disponible: no se puede publicar.', true); return; }
 
   estado.publicando = true;
   mostrarOverlayCarga('Preparando «' + archivo.name + '»…', 'Generando portada y ficha');
   const pararVigilante = vigilanteCarga(60);
 
   try {
+    // Espera a que PDF.js (CDN asíncrono) esté listo; si no llega, el
+    // catch inferior avisa, cierra el overlay y reactiva el botón.
+    await obtenerPdfjs();
+
     const bytes = new Uint8Array(await archivo.arrayBuffer());
 
     let portada = '';
@@ -634,12 +665,16 @@ async function publicarPDF(archivo) {
 
 /** Carga y monta un PDF en el lector. Devuelve true si salió bien. */
 async function abrirPDF(bytes, meta) {
-  if (!pdfjsLib) {
-    avisar('No se cargó PDF.js. Comprueba tu conexión a Internet.', true);
-    return false;
-  }
-  if (!window.St) {
-    avisar('No se cargó la librería de volteo (page-flip). Comprueba tu conexión.', true);
+  // Espera (máx. ~10 s) a que las librerías del CDN asíncrono estén listas.
+  // Los llamadores ya han mostrado el overlay de carga con «Abriendo…».
+  let pdfjs = null;
+  let PageFlip = null;
+  try {
+    pdfjs = await obtenerPdfjs();
+    PageFlip = (await esperarLibreria(() => window.St, 'page-flip')).PageFlip;
+  } catch (e) {
+    avisar((e && e.message) ||
+      'No se pudieron cargar las librerías. Comprueba tu conexión a Internet.', true);
     return false;
   }
 
@@ -648,7 +683,7 @@ async function abrirPDF(bytes, meta) {
   mostrarOverlayCarga('Procesando «' + meta.nombre + '»…', '');
 
   try {
-    const carga = pdfjsLib.getDocument({
+    const carga = pdfjs.getDocument({
       data: bytes.slice(0),
       cMapUrl: RUTA_CMAPS,
       cMapPacked: true,
@@ -700,7 +735,7 @@ async function abrirPDF(bytes, meta) {
     elems.forEach((el) => ui.contenedorLibro.appendChild(el));
 
     // Instanciar el flipbook en modo libro abierto
-    const flip = new window.St.PageFlip(ui.contenedorLibro, {
+    const flip = new PageFlip(ui.contenedorLibro, {
       width: Math.round(vp1.width),
       height: Math.round(vp1.height),
       minWidth: 290,
@@ -2430,8 +2465,10 @@ async function iniciar() {
   enlazarEventos();
   inicializarSonido();
 
-  if (pdfjsLib) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = RUTA_PDFJS + 'pdf.worker.min.js';
+  // PDF.js llega por CDN con `async`: si aún no está, obtenerPdfjs() lo
+  // esperará en el momento de abrir/publicar. Aquí solo se aprovecha si ya cargó.
+  if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = RUTA_PDFJS + 'pdf.worker.min.js';
   }
 
   capturarOriginales();
@@ -2456,10 +2493,22 @@ async function iniciar() {
   });
 }
 
+/** Arranque: si algo falla, se registra y se pinta al menos la estantería. */
+function arrancar() {
+  iniciar().catch((e) => {
+    console.error('No se pudo iniciar la aplicación:', e);
+    try {
+      renderizarChips();
+      renderizarEstanteria();
+      aplicarRuta();
+    } catch { /* sin más red de seguridad */ }
+  });
+}
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', iniciar);
+  document.addEventListener('DOMContentLoaded', arrancar);
 } else {
-  iniciar();
+  arrancar();
 }
 
 /* Gancho de depuración y pruebas (no usado por la interfaz). */

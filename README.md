@@ -138,6 +138,12 @@ npx wrangler pages deploy . --project-name noti-mision
 
 Cualquier CDN estático sirve (GitHub Pages, Netlify…): no hay backend.
 
+**Resiliencia del CDN:** PDF.js y page-flip se cargan con `async` desde
+jsDelivr y `app.js` nunca espera a ellos. Si el CDN está lento o bloqueado,
+el sitio, las rutas y los dos modos de edición siguen funcionando; al abrir
+o publicar un PDF se muestra un aviso de error a los ~10 s en lugar de
+quedarse en «Cargando…».
+
 ## Personalización
 
 Los ajustes viven como constantes al principio de `app.js`: rutas de CDN y del
