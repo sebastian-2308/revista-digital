@@ -23,9 +23,9 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" async></script>
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" async></script>
-  <script src="app.js?v=7" defer></script>
+  <script src="app.js?v=8" defer></script>
 
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=7">
 </head>
 
 <body class="vista-biblioteca">
@@ -98,7 +98,7 @@
         </div>
       </div>
 
-      <div class="bloques">
+      <div class="bloques" data-zona-nuevos>
         <article class="bloque" data-bloque="inicio.quienes">
           <h2 data-editable="inicio.quienes.titulo">¿Quiénes somos?</h2>
           <p class="texto-guia" data-editable="inicio.quienes.texto">
@@ -147,7 +147,7 @@
         </p>
       </header>
 
-      <div class="rejilla-testimonios">
+      <div class="rejilla-testimonios" data-zona-nuevos>
         <!-- Tarjetas guía: el equipo las rellena y puede ocultarlas una a una -->
         <article class="testimonio" data-bloque="testimonio.1">
           <figure class="foto foto--retrato" data-foto="testimonio.1.foto">
@@ -209,7 +209,7 @@
         </p>
       </header>
 
-      <div class="bloques">
+      <div class="bloques" data-zona-nuevos>
         <article class="bloque" data-bloque="misiones.donde">
           <h2 data-editable="misiones.donde.titulo">¿Dónde servimos?</h2>
           <p class="texto-guia" data-editable="misiones.donde.texto">
@@ -248,7 +248,7 @@
         </p>
       </header>
 
-      <div class="bloques">
+      <div class="bloques" data-zona-nuevos>
         <article class="bloque" data-bloque="extension.proyecto">
           <h2 data-editable="extension.proyecto.titulo">Nuestro proyecto de extensión</h2>
           <p class="texto-guia" data-editable="extension.proyecto.texto">
@@ -278,7 +278,7 @@
         </p>
       </header>
 
-      <div class="bloques">
+      <div class="bloques" data-zona-nuevos>
         <article class="bloque" data-bloque="consejo.1">
           <h2 data-editable="consejo.1.titulo">Título del primer consejo</h2>
           <p class="texto-guia" data-editable="consejo.1.texto">
@@ -308,7 +308,7 @@
         </p>
       </header>
 
-      <div class="bloques">
+      <div class="bloques" data-zona-nuevos>
         <article class="bloque" data-bloque="informacion.contacto">
           <h2 data-editable="informacion.contacto.titulo">Contacto</h2>
           <p class="texto-guia" data-editable="informacion.contacto.texto">
@@ -382,6 +382,9 @@
       Todo se guarda en este navegador.
     </p>
     <div class="barra-edicion__botones">
+      <button id="btnAgregarBloque" class="boton boton--acento" type="button"
+              aria-haspopup="dialog"
+              title="Añadir un bloque nuevo con un diseño ya preparado">Agregar bloque</button>
       <button id="btnDescargarCambios" class="boton boton--suave" type="button"
               title="Guardar una copia de los cambios en un archivo">Descargar cambios</button>
       <button id="btnImportarCambios" class="boton boton--suave" type="button"
@@ -548,6 +551,28 @@
       </p>
 
       <button class="boton" type="button" id="btnReintentar">Reintentar</button>
+    </div>
+  </div>
+
+  <!-- Overlay: galería de bloques predefinidos (solo en modo edición) -->
+  <div class="overlay oculto" id="panelPlantillas" role="dialog"
+       aria-modal="true" aria-labelledby="panelPlantillasTitulo">
+    <div class="overlay__caja overlay__caja--plantillas">
+      <header class="plantillas__cabecera">
+        <div>
+          <p class="epigrafe">Modo edición</p>
+          <h2 id="panelPlantillasTitulo">Agregar bloque</h2>
+        </div>
+        <button class="boton boton--icono" id="btnCerrarPlantillas" type="button"
+                aria-label="Cerrar la galería de bloques">
+          <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </header>
+      <p class="plantillas__ayuda">
+        Elige un modelo ya con estilo: después escribe encima del texto guía,
+        pon la foto con «Cambiar foto» y elimina lo que no necesites con ✕.
+      </p>
+      <div class="plantillas" id="listaPlantillas"><!-- plantillas generadas por app.js --></div>
     </div>
   </div>
 

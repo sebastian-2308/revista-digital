@@ -1544,3 +1544,123 @@ body.modo-texto .capa__texto { cursor: text; }
 
   .barra-edicion__ayuda { max-width: none; }
 }
+
+/* ==================== 17. BLOQUES AGREGADOS Y GALERÍA =================== */
+/* Panel «Agregar bloque» (plantillas predefinidas) + estilos propios de
+   los bloques que el equipo añade desde el modo edición. */
+
+.overlay__caja--plantillas {
+  width: min(94vw, 760px);
+  max-width: 760px;
+  padding: 26px 26px 24px;
+  text-align: left;
+}
+
+.plantillas__cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.plantillas__cabecera h2 { font-size: 1.5rem; margin-bottom: 8px; }
+
+.plantillas__ayuda {
+  font-size: 0.9rem;
+  color: var(--texto-2);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.plantillas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  max-height: min(56vh, 480px);
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.plantilla {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  text-align: left;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s var(--curva), background 0.15s var(--curva),
+    transform 0.15s var(--curva);
+}
+
+.plantilla:hover,
+.plantilla:focus-visible {
+  border-color: var(--acento);
+  background: rgba(230, 180, 80, 0.07);
+  transform: translateY(-2px);
+}
+
+.plantilla__icono { color: var(--acento); }
+.plantilla__icono .icono { width: 22px; height: 22px; }
+.plantilla__nombre { font-weight: 600; font-size: 0.98rem; }
+.plantilla__desc { font-size: 0.82rem; color: var(--texto-3); line-height: 1.45; }
+
+/* --- Bloques que se agregan desde las plantillas --- */
+.lista-puntos {
+  display: grid;
+  gap: 8px;
+  padding-left: 22px;
+  color: var(--texto-2);
+  line-height: 1.6;
+}
+
+.lista-puntos li::marker { color: var(--acento); }
+
+.bloque--foto .foto { margin-bottom: 12px; }
+
+.integrante { display: flex; gap: 16px; align-items: flex-start; }
+
+.integrante__foto {
+  width: 86px;
+  height: 86px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.integrante__datos { min-width: 0; }
+.bloque--integrante h2 { font-size: clamp(1.15rem, 2.2vw, 1.4rem); margin-bottom: 4px; }
+.integrante__rol { color: var(--acento); font-size: 0.88rem; margin-bottom: 8px; }
+
+.cita-grande {
+  font-family: var(--fuente-display);
+  font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+  line-height: 1.5;
+  color: var(--texto);
+}
+
+.cita-autor { color: var(--texto-3); font-size: 0.9rem; margin-top: 12px; }
+
+.bloque--cita {
+  background: transparent;
+  border: 0;
+  border-left: 3px solid var(--acento);
+  border-radius: 0;
+  padding-left: clamp(16px, 2.6vw, 28px);
+}
+
+/* ✕ de los bloques agregados: estado «¿Seguro?» del borrado en dos toques */
+.bloque__ocultar.peligro {
+  color: var(--peligro);
+  border-color: var(--peligro);
+  background: rgba(255, 92, 92, 0.14);
+}
+
+@media (max-width: 560px) {
+  .plantillas { grid-template-columns: 1fr; }
+  .overlay__caja--plantillas { padding: 20px 16px; }
+}

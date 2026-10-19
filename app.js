@@ -49,6 +49,17 @@ const CLAVE_CAPAS = 'revista:capas:';
 const SECCIONES = ['inicio', 'testimonios', 'misiones', 'extension',
   'consejos', 'informacion', 'biblioteca'];
 
+/** Nombre visible de cada sección (para los avisos). */
+const NOMBRES_SECCION = {
+  inicio: 'Inicio',
+  testimonios: 'Testimonios',
+  misiones: 'Nuestras misiones',
+  extension: 'Extensión',
+  consejos: 'Consejos',
+  informacion: 'Información',
+  biblioteca: 'Biblioteca'
+};
+
 /* ========================= 2. CATÁLOGO RESIDENTE ========================== */
 /* Copia de seguridad de assets/revistas.json para cuando el navegador no
    permite leer archivos locales (file://) o falla la red. */
@@ -157,6 +168,10 @@ const ui = {
   btnRestablecerSitio: $('#btnRestablecerSitio'),
   btnMostrarOcultos: $('#btnMostrarOcultos'),
   btnSalirEdicion: $('#btnSalirEdicion'),
+  btnAgregarBloque: $('#btnAgregarBloque'),
+  panelPlantillas: $('#panelPlantillas'),
+  btnCerrarPlantillas: $('#btnCerrarPlantillas'),
+  listaPlantillas: $('#listaPlantillas'),
 
   barraLector: $('.barra--lector'),
   vistaLector: $('#vistaLector'),
@@ -1280,6 +1295,7 @@ function aplicarRuta() {
   document.body.classList.toggle('en-biblioteca', seccion === 'biblioteca');
   ui.menuSitio.classList.remove('menu--abierto');
   ui.btnMenu.setAttribute('aria-expanded', 'false');
+  ui.btnAgregarBloque.disabled = (seccion === 'biblioteca');
   ui.sitio.scrollTop = 0;
 }
 
@@ -1298,12 +1314,136 @@ function irA(seccion) {
 const originalesSitio = new Map();   // contenido base capturado al arrancar
 let temporizadorGuardarSitio = null;
 
+/* --- Bloques predefinidos (galería «Agregar bloque») ----------------------
+   Cada plantilla genera un bloque con diseño ya hecho y textos guía; el
+   equipo solo reescribe encima. Se guardan en estado.sitio.nuevos como
+   {id, plantilla, seccion} y sus textos/fotos usan la clave «nuevo.<id>…». */
+const PLANTILLAS_BLOQUE = {
+  texto: {
+    nombre: 'Bloque de texto',
+    desc: 'Un título y un párrafo para añadir más información.',
+    icono: '<path d="M4 6h16"/><path d="M4 12h11"/><path d="M4 17h7"/>',
+    html: (c) =>
+      '<article class="bloque">' +
+      '<h2 data-editable="' + c + '.titulo">Título del nuevo bloque</h2>' +
+      '<p class="texto-guia" data-editable="' + c + '.texto">' +
+      'Escribe aquí lo que quieras contar: una actividad, una noticia, ' +
+      'un recordatorio o cualquier información nueva del grupo.</p>' +
+      '</article>'
+  },
+  lista: {
+    nombre: 'Lista con viñetas',
+    desc: 'Un título con varios puntos clave.',
+    icono: '<circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/>' +
+      '<circle cx="5" cy="18" r="1.6"/><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/>',
+    html: (c) =>
+      '<article class="bloque">' +
+      '<h2 data-editable="' + c + '.titulo">Título de la lista</h2>' +
+      '<ul class="lista-puntos">' +
+      '<li data-editable="' + c + '.p1">Primer punto de la lista…</li>' +
+      '<li data-editable="' + c + '.p2">Segundo punto…</li>' +
+      '<li data-editable="' + c + '.p3">Tercer punto…</li>' +
+      '</ul></article>'
+  },
+  foto: {
+    nombre: 'Foto con pie',
+    desc: 'Una imagen con su texto explicativo debajo.',
+    icono: '<rect x="3" y="5" width="18" height="14" rx="2"/>' +
+      '<circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-6 6"/>',
+    html: (c) =>
+      '<article class="bloque bloque--foto">' +
+      '<figure class="foto foto--paisaje" data-foto="' + c + '.foto">' +
+      '<img class="foto__img" alt="Foto del bloque" hidden>' +
+      '<span class="foto__hueco" aria-hidden="true"><em>Sube una foto</em></span>' +
+      '<button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>' +
+      '</figure>' +
+      '<p class="texto-guia" data-editable="' + c + '.pie">' +
+      'Pie de la foto: cuéntale a qué se refiere.</p>' +
+      '</article>'
+  },
+  testimonio: {
+    nombre: 'Testimonio',
+    desc: 'Foto, cita y nombre de quien habla.',
+    icono: '<path d="M4 5h16v11H9l-5 4V5z"/><path d="M8 9h8"/><path d="M8 12h5"/>',
+    html: (c) =>
+      '<article class="testimonio">' +
+      '<figure class="foto foto--retrato" data-foto="' + c + '.foto">' +
+      '<img class="foto__img" alt="Retrato del testimonio" hidden>' +
+      '<span class="foto__hueco" aria-hidden="true"><em>Añade una foto</em></span>' +
+      '<button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>' +
+      '</figure>' +
+      '<blockquote class="texto-guia" data-editable="' + c + '.cita">' +
+      '«Escribe aquí la frase que quieras destacar de este testimonio…»</blockquote>' +
+      '<p class="testimonio__autor" data-editable="' + c + '.autor">— Nombre y apellido</p>' +
+      '</article>'
+  },
+  integrante: {
+    nombre: 'Ficha de integrante',
+    desc: 'Foto, nombre y función: ideal para nuevos miembros.',
+    icono: '<circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+    html: (c) =>
+      '<article class="bloque bloque--integrante">' +
+      '<div class="integrante">' +
+      '<figure class="foto foto--retrato integrante__foto" data-foto="' + c + '.foto">' +
+      '<img class="foto__img" alt="Foto del integrante" hidden>' +
+      '<span class="foto__hueco" aria-hidden="true"><em>Foto</em></span>' +
+      '<button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>' +
+      '</figure>' +
+      '<div class="integrante__datos">' +
+      '<h2 data-editable="' + c + '.nombre">Nombre del integrante</h2>' +
+      '<p class="integrante__rol texto-guia" data-editable="' + c + '.rol">Función o rol en el grupo</p>' +
+      '<p class="texto-guia" data-editable="' + c + '.bio">' +
+      'Breve presentación: desde cuándo está en el grupo, qué le gusta y qué aporta.</p>' +
+      '</div></div></article>'
+  },
+  cita: {
+    nombre: 'Cita destacada',
+    desc: 'Frase grande entrecomillada con su autor.',
+    icono: '<path d="M7 7h4v4a4 4 0 0 1-4 4"/><path d="M14 7h4v4a4 4 0 0 1-4 4"/>',
+    html: (c) =>
+      '<article class="bloque bloque--cita">' +
+      '<blockquote class="cita-grande texto-guia" data-editable="' + c + '.texto">' +
+      '«Escribe aquí la frase que quieres destacar…»</blockquote>' +
+      '<p class="cita-autor" data-editable="' + c + '.autor">— Nombre de quien la dice</p>' +
+      '</article>'
+  },
+  llamada: {
+    nombre: 'Llamada con botón',
+    desc: 'Aviso con mensaje y botón enlazable.',
+    icono: '<rect x="3" y="6" width="18" height="13" rx="3"/>' +
+      '<path d="M7 12.5h6"/><path d="m12 10 2.5 2.5L12 15"/>',
+    html: (c) =>
+      '<article class="bloque llamada">' +
+      '<div>' +
+      '<h2 data-editable="' + c + '.titulo">Mensaje de llamada</h2>' +
+      '<p class="texto-guia" data-editable="' + c + '.texto">' +
+      'Invita a hacer algo: escribiros, apuntaros o venir a la próxima salida.</p>' +
+      '</div>' +
+      '<a class="boton boton--acento" data-link data-editable="' + c + '.boton" href="#">Escríbenos</a>' +
+      '</article>'
+  }
+};
+
 function normalizarSitio(datos) {
   const d = datos && typeof datos === 'object' ? datos : {};
+  const vistos = new Set();
+  const nuevos = (Array.isArray(d.nuevos) ? d.nuevos : [])
+    .filter((e) => {
+      if (!e || typeof e.id !== 'string' || !e.id || vistos.has(e.id)) return false;
+      if (!PLANTILLAS_BLOQUE[e.plantilla]) return false;
+      vistos.add(e.id);
+      return true;
+    })
+    .map((e) => ({
+      id: e.id,
+      plantilla: e.plantilla,
+      seccion: SECCIONES.includes(e.seccion) ? e.seccion : 'inicio'
+    }));
   return {
     textos: (d.textos && typeof d.textos === 'object') ? d.textos : {},
     fotos: (d.fotos && typeof d.fotos === 'object') ? d.fotos : {},
-    ocultos: Array.isArray(d.ocultos) ? d.ocultos.slice() : []
+    ocultos: Array.isArray(d.ocultos) ? d.ocultos.slice() : [],
+    nuevos: nuevos
   };
 }
 
@@ -1346,10 +1486,15 @@ async function cargarEdicionesPublicadas() {
     const r = await fetch('assets/ediciones.json', { cache: 'no-store' });
     if (!r.ok) return;
     const datos = normalizarSitio(await r.json());
+    const locales = estado.sitio;
+    // los bloques nuevos propios mandan sobre los de la base (mismo id)
+    const porId = new Map();
+    datos.nuevos.concat(locales.nuevos).forEach((e) => porId.set(e.id, e));
     estado.sitio = normalizarSitio({
-      textos: Object.assign({}, datos.textos, estado.sitio.textos),
-      fotos: Object.assign({}, datos.fotos, estado.sitio.fotos),
-      ocultos: Array.from(new Set(datos.ocultos.concat(estado.sitio.ocultos)))
+      textos: Object.assign({}, datos.textos, locales.textos),
+      fotos: Object.assign({}, datos.fotos, locales.fotos),
+      ocultos: Array.from(new Set(datos.ocultos.concat(locales.ocultos))),
+      nuevos: Array.from(porId.values())
     });
   } catch { /* file:// o sin archivo: seguimos con lo local */ }
 }
@@ -1371,6 +1516,8 @@ function aplicarFoto(fig, dataURL) {
 
 /** Aplica los cambios guardados sobre los marcadores del sitio. */
 function aplicarEdicionesSitio() {
+  renderizarNuevosBloques();
+
   document.querySelectorAll('[data-editable]').forEach((el) => {
     const clave = el.dataset.editable;
     const texto = estado.sitio.textos[clave];
@@ -1406,7 +1553,8 @@ function alternarModoEdicionSitio(activo) {
     if (estado.vista === 'lector') mostrarVista('biblioteca');
     inyectarBotonesBloque();
     avisar('Modo edición: pulsa un texto para escribir, «Cambiar foto» en ' +
-      'las fotos y ✕ en los bloques que quieras ocultar.');
+      'las fotos, «Agregar bloque» para añadir contenido nuevo y ✕ en los ' +
+      'bloques para ocultarlos (o borrar los agregados).');
   } else {
     quitarBotonesBloque();
     guardarSitio();
@@ -1418,21 +1566,24 @@ function alternarModoEdicionSitio(activo) {
   }
 }
 
-/** Añade a cada bloque un botón ✕ para ocultarlo (solo en modo edición). */
+/** Añade a cada bloque un botón ✕ (solo en modo edición).
+    En los bloques predefinidos oculta; en los agregados, elimina en 2 toques. */
 function inyectarBotonesBloque() {
   document.querySelectorAll('[data-bloque]').forEach((bloque) => {
     if (bloque.querySelector(':scope > .bloque__ocultar')) return;
+    const esNuevo = bloque.hasAttribute('data-bloque-nuevo');
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'bloque__ocultar';
-    btn.title = 'Ocultar este bloque';
-    btn.setAttribute('aria-label', 'Ocultar este bloque');
+    btn.title = esNuevo ? 'Eliminar este bloque' : 'Ocultar este bloque';
+    btn.setAttribute('aria-label', btn.title);
     btn.innerHTML =
       '<svg viewBox="0 0 24 24" class="icono" aria-hidden="true">' +
       '<path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
     btn.addEventListener('click', (ev) => {
       ev.preventDefault();
-      ocultarBloque(bloque.dataset.bloque);
+      if (esNuevo) confirmarEliminacionBloque(btn, bloque);
+      else ocultarBloque(bloque.dataset.bloque);
     });
     bloque.appendChild(btn);
   });
@@ -1461,6 +1612,153 @@ function mostrarBloquesOcultos() {
   aplicarEdicionesSitio();
   if (estado.modoEdicionSitio) inyectarBotonesBloque();
   avisar('Todos los bloques vuelven a verse.');
+}
+
+/* --- Bloques nuevos (galería de plantillas predefinidas) --- */
+
+/** Contenedor donde se insertan los bloques nuevos de una sección. */
+function zonaDeBloques(nombreSeccion) {
+  const sec = document.querySelector('.web[data-seccion="' + nombreSeccion + '"]');
+  return sec ? sec.querySelector('[data-zona-nuevos]') : null;
+}
+
+/** Pinta las tarjetas de la galería (una sola vez). */
+function renderizarPlantillas() {
+  if (ui.listaPlantillas.childElementCount) return;
+  Object.keys(PLANTILLAS_BLOQUE).forEach((id) => {
+    const p = PLANTILLAS_BLOQUE[id];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'plantilla';
+    btn.dataset.plantilla = id;
+    btn.innerHTML =
+      '<span class="plantilla__icono" aria-hidden="true">' +
+      '<svg viewBox="0 0 24 24" class="icono">' + p.icono + '</svg></span>' +
+      '<span class="plantilla__nombre">' + p.nombre + '</span>' +
+      '<span class="plantilla__desc">' + p.desc + '</span>';
+    btn.addEventListener('click', () => agregarBloqueNuevo(id));
+    ui.listaPlantillas.appendChild(btn);
+  });
+}
+
+function abrirPanelPlantillas() {
+  const zona = zonaDeBloques(estado.seccion);
+  if (!zona) {
+    avisar('La Biblioteca no admite bloques: abre una sección del sitio ' +
+      '(Inicio, Testimonios…) para agregar.', true);
+    return;
+  }
+  renderizarPlantillas();
+  ui.panelPlantillas.classList.remove('oculto');
+  const primero = ui.listaPlantillas.querySelector('.plantilla');
+  if (primero) primero.focus();
+}
+
+function cerrarPanelPlantillas() {
+  if (ui.panelPlantillas.classList.contains('oculto')) return;
+  ui.panelPlantillas.classList.add('oculto');
+  if (estado.modoEdicionSitio) ui.btnAgregarBloque.focus();
+}
+
+/** Construye el nodo DOM de un bloque guardado (entrada de `nuevos`). */
+function construirBloqueNuevo(entrada) {
+  const plantilla = PLANTILLAS_BLOQUE[entrada.plantilla];
+  const prefijo = 'nuevo.' + entrada.id;
+  const caja = document.createElement('div');
+  caja.innerHTML = plantilla ? plantilla.html(prefijo) : '';
+  const el = caja.firstElementChild;
+  el.setAttribute('data-bloque', prefijo);
+  el.setAttribute('data-bloque-nuevo', entrada.id);
+  return el;
+}
+
+/** Deja un bloque recién creado listo para editar (si hay modo edición). */
+function prepararBloqueNuevo(el) {
+  if (!estado.modoEdicionSitio) return;
+  el.querySelectorAll('[data-editable]').forEach((t) => { t.contentEditable = 'true'; });
+  inyectarBotonesBloque();
+}
+
+/** Sincroniza el DOM con estado.sitio.nuevos (añade y retira bloques). */
+function renderizarNuevosBloques() {
+  document.querySelectorAll('[data-bloque-nuevo]').forEach((el) => {
+    const id = el.dataset.bloqueNuevo;
+    if (!estado.sitio.nuevos.some((e) => e.id === id)) el.remove();
+  });
+  estado.sitio.nuevos.forEach((entrada) => {
+    if (document.querySelector('[data-bloque-nuevo="' + entrada.id + '"]')) return;
+    const zona = zonaDeBloques(entrada.seccion);
+    if (!zona) return;   // sección no disponible: se conserva en el guardado
+    const el = construirBloqueNuevo(entrada);
+    zona.appendChild(el);
+    prepararBloqueNuevo(el);
+  });
+}
+
+/** Agrega un bloque de la plantilla indicada en la sección visible. */
+function agregarBloqueNuevo(plantillaId) {
+  const plantilla = PLANTILLAS_BLOQUE[plantillaId];
+  const zona = zonaDeBloques(estado.seccion);
+  if (!plantilla || !zona) {
+    avisar('No se pudo añadir el bloque en esta sección.', true);
+    return null;
+  }
+  const entrada = {
+    id: 'b' + Date.now().toString(36) + Math.floor(Math.random() * 1000000).toString(36),
+    plantilla: plantillaId,
+    seccion: estado.seccion
+  };
+  estado.sitio.nuevos.push(entrada);
+  const el = construirBloqueNuevo(entrada);
+  zona.appendChild(el);
+  prepararBloqueNuevo(el);
+  guardarSitio();
+
+  cerrarPanelPlantillas();
+  if (typeof el.scrollIntoView === 'function') {
+    try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch { /* opcional */ }
+  }
+  const primero = el.querySelector('[data-editable]');
+  if (primero) primero.focus();
+  avisar('Bloque añadido en «' + (NOMBRES_SECCION[estado.seccion] || estado.seccion) +
+    '»: escribe encima de la guía y pon su foto.');
+  return el;
+}
+
+/** ✕ de un bloque nuevo: primer toque pide confirmación, segundo lo borra. */
+function confirmarEliminacionBloque(btn, bloque) {
+  if (btn.dataset.confirmar !== 'si') {
+    btn.dataset.confirmar = 'si';
+    btn.classList.add('peligro');
+    btn.title = '¿Seguro? Pulsa otra vez para eliminar';
+    avisar('Pulsa ✕ otra vez para eliminar este bloque (no se puede deshacer).');
+    btn.temporizadorConfirmacion = setTimeout(() => {
+      btn.dataset.confirmar = '';
+      btn.classList.remove('peligro');
+      btn.title = 'Eliminar este bloque';
+    }, 3500);
+    return;
+  }
+  clearTimeout(btn.temporizadorConfirmacion);
+  eliminarBloqueNuevo(bloque.dataset.bloqueNuevo);
+}
+
+/** Elimina un bloque nuevo y todo lo que se guardó con sus claves. */
+function eliminarBloqueNuevo(id) {
+  const prefijo = 'nuevo.' + id + '.';
+  estado.sitio.nuevos = estado.sitio.nuevos.filter((e) => e.id !== id);
+  Object.keys(estado.sitio.textos).forEach((k) => {
+    if (k.indexOf(prefijo) === 0) delete estado.sitio.textos[k];
+  });
+  Object.keys(estado.sitio.fotos).forEach((k) => {
+    if (k.indexOf(prefijo) === 0) delete estado.sitio.fotos[k];
+  });
+  estado.sitio.ocultos = estado.sitio.ocultos
+    .filter((k) => k !== 'nuevo.' + id && k.indexOf(prefijo) !== 0);
+  const el = document.querySelector('[data-bloque-nuevo="' + id + '"]');
+  if (el) el.remove();
+  guardarSitio();
+  avisar('Bloque eliminado.');
 }
 
 /* --- Fotos del sitio --- */
@@ -1579,10 +1877,13 @@ function importarCambiosSitio(archivo) {
   lector.onload = () => {
     try {
       const datos = normalizarSitio(JSON.parse(lector.result));
+      const porId = new Map();
+      estado.sitio.nuevos.concat(datos.nuevos).forEach((e) => porId.set(e.id, e));
       estado.sitio = normalizarSitio({
         textos: Object.assign({}, estado.sitio.textos, datos.textos),
         fotos: Object.assign({}, estado.sitio.fotos, datos.fotos),
-        ocultos: Array.from(new Set(estado.sitio.ocultos.concat(datos.ocultos)))
+        ocultos: Array.from(new Set(estado.sitio.ocultos.concat(datos.ocultos))),
+        nuevos: Array.from(porId.values())
       });
       guardarSitio();
       aplicarEdicionesSitio();
@@ -1623,7 +1924,7 @@ function restablecerSitio() {
   try { localStorage.removeItem(CLAVE_SITIO); } catch { /* noop */ }
   aplicarEdicionesSitio();
   if (estado.modoEdicionSitio) inyectarBotonesBloque();
-  avisar('Sitio restablecido al contenido original.');
+  avisar('Sitio restablecido al contenido original (los bloques agregados se eliminaron).');
 }
 
 /* ============ 17. EDITOR DE TEXTO SOBRE LAS PÁGINAS (CAPAS) =============== */
@@ -2295,6 +2596,12 @@ function enlazarEventos() {
   });
   ui.btnMostrarOcultos.addEventListener('click', mostrarBloquesOcultos);
   ui.btnRestablecerSitio.addEventListener('click', restablecerSitio);
+  ui.btnAgregarBloque.addEventListener('click', abrirPanelPlantillas);
+  ui.btnCerrarPlantillas.addEventListener('click', cerrarPanelPlantillas);
+  ui.panelPlantillas.addEventListener('click', (e) => {
+    // clic en el fondo del overlay: cierra la galería
+    if (e.target === ui.panelPlantillas) cerrarPanelPlantillas();
+  });
   ui.inputImagen.addEventListener('change', () => {
     procesarFoto(ui.inputImagen.files && ui.inputImagen.files[0]);
   });
@@ -2385,6 +2692,7 @@ function enlazarEventos() {
     }
 
     if (e.key === 'Escape') {
+      if (!ui.panelPlantillas.classList.contains('oculto')) { cerrarPanelPlantillas(); return; }
       if (estado.modoTexto) { aplicarModoTexto(false); return; }
       if (ui.panelInfo.classList.contains('abierto')) { cerrarPanel(); return; }
       if (estado.modoEdicionSitio) { alternarModoEdicionSitio(false); return; }
@@ -2539,6 +2847,12 @@ window.__interno = {
   descargarCambiosSitio,
   importarCambiosSitio,
   procesarFoto,
+  // bloques predefinidos (galería «Agregar bloque»)
+  agregarBloqueNuevo,
+  eliminarBloqueNuevo,
+  abrirPanelPlantillas,
+  cerrarPanelPlantillas,
+  plantillas: PLANTILLAS_BLOQUE,
   // editor de texto sobre páginas
   aplicarModoTexto,
   crearCapaEnPagina,

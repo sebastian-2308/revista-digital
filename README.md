@@ -23,13 +23,22 @@ cualquiera.
 - **Textos**: pulsa cualquier texto marcado y escribe (se guarda solo).
 - **Fotos**: botón «Cambiar foto» en cada hueco; la imagen se recorta y
   comprime a medida.
-- **Bloques**: ✕ en cada bloque para ocultarlo; «Mostrar bloques ocultos» lo
-  recupera.
+- **Agregar bloques**: botón «Agregar bloque» en la barra de edición. Abre una
+  galería de modelos ya diseñados que se insertan al final de la sección que
+  estés viendo:
+  - Bloque de texto · Lista con viñetas · Foto con pie · Testimonio ·
+    Ficha de integrante (ideal para nuevos miembros) · Cita destacada ·
+    Llamada con botón.
+  Sus textos nacen editables y sus fotos se cambian igual que las demás; el ✕
+  de un bloque agregado lo elimina en dos toques (no se puede deshacer).
+  En la sección Biblioteca el botón aparece deshabilitado.
+- **Bloques**: ✕ en cada bloque original para ocultarlo; «Mostrar bloques
+  ocultos» lo recupera.
 - **Enlaces**: en modo edición, un clic sobre un enlace pide la nueva URL.
 - **Persistencia**: todo se guarda en el navegador (`localStorage`). Para
   llevar los cambios a otro navegador o publicarlos: **Descargar cambios**
   (JSON) → **Importar cambios**. «Restablecer» (dos toques) vuelve al
-  contenido original.
+  contenido original y elimina los bloques agregados.
 - **Publicación opcional**: si se crea `assets/ediciones.json` con la misma
   forma del JSON descargado, se sirve como contenido base para todos los
   visitantes (los cambios locales tienen prioridad).
@@ -160,7 +169,8 @@ claves de `localStorage`.
 
 ## Pruebas
 
-Suites jsdom (50 + 14 + 41 aserciones) que cubren estantería, filtros,
+Suites jsdom (50 + 14 + 62 + 14 aserciones) que cubren estantería, filtros,
 apertura, navegación, panel, sonido, miniaturas, publicación, el modo
-`file://`, las rutas del sitio, el modo edición del sitio, el editor de capas
-sobre páginas y la exportación del PDF editado.
+`file://`, las rutas del sitio, el modo edición del sitio (con la galería de
+bloques predefinidos), el editor de capas sobre páginas, la resiliencia sin
+CDN y la exportación del PDF editado.
