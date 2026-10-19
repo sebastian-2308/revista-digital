@@ -1,31 +1,50 @@
-# Biblioteca · Revistas digitales
+# Noti‑Misión · Sitio y biblioteca de revistas digitales
 
-Biblioteca de revistas digitales con efecto 3D de paso de página: una estantería
-ordenada donde publicas tus propios PDFs y los lees como un libro de verdad.
-Tres archivos principales, sin build ni dependencias locales: se abre y funciona.
+Sitio completo del grupo juvenil **Noti‑Misión (JUMISMAC)** con biblioteca de
+revistas digitales: secciones navegables, modo edición para el equipo y un
+lector flipbook con efecto 3D de paso de página. Tres archivos principales
+(`index.html`, `styles.css`, `app.js`), sin build ni dependencias locales: se
+abre y funciona.
 
-## Características
+> El sitio se entrega con **textos de guía y huecos de foto**: el equipo pone
+> sus propias palabras, fotos y enlaces desde el modo edición, sin tocar código.
 
-- **Vista biblioteca**: estantería de portadas con lomo, buscador por título o
-  categoría, chips de filtro y orden (lo publicado primero, luego el catálogo).
-- **Publicar revista**: botón *Publicar* o **arrastra un PDF** a la ventana.
-  Se le genera la portada automáticamente (PDF.js rasteriza la página 1), se
-  guardan nº de páginas y fecha, y queda en la estantería persistida en el
-  navegador (IndexedDB, con respaldo en memoria si no hay soporte).
-- **Lector flipbook**: al pulsar una portada se abre a pantalla completa con
-  **volteo 3D realista** (StPageFlip), gestos táctiles, arrastre con el ratón,
-  esquinas interactivas y **sonido de hoja** (`assets/pagina.mp3`).
-- **Conversión automática del PDF**: PDF.js rasteriza cada página a imágenes y
-  el libro se monta solo. Carga por prioridades: primero las visibles.
-- **Navegación**: dock flotante con deslizador, indicador de páginas, riel de
-  miniaturas, pantalla completa y atajos de teclado.
-- **Panel de ficha**: descripción editable (se guarda sola en el navegador,
-  por revista) y datos del archivo.
-- **Responsive y accesible**: doble página en escritorio, página única en
-  móvil, foco visible, etiquetas ARIA y respeto a `prefers-reduced-motion`.
+## Secciones del sitio
 
-> No hay editor de texto en vivo: la revista se lee tal cual se publica.
-> Para cambiar un texto, edita el PDF de origen y vuelve a publicarlo.
+Inicio · Testimonios · Nuestras misiones · Extensión · Consejos ·
+Información · Biblioteca. Cada sección se muestra con un hash
+(`#/inicio`, `#/testimonios`…), así que se puede enlazar directamente a
+cualquiera.
+
+## Dos formas de edición (100 % editable)
+
+### 1. Modo edición del sitio (botón «Editar sitio»)
+
+- **Textos**: pulsa cualquier texto marcado y escribe (se guarda solo).
+- **Fotos**: botón «Cambiar foto» en cada hueco; la imagen se recorta y
+  comprime a medida.
+- **Bloques**: ✕ en cada bloque para ocultarlo; «Mostrar bloques ocultos» lo
+  recupera.
+- **Enlaces**: en modo edición, un clic sobre un enlace pide la nueva URL.
+- **Persistencia**: todo se guarda en el navegador (`localStorage`). Para
+  llevar los cambios a otro navegador o publicarlos: **Descargar cambios**
+  (JSON) → **Importar cambios**. «Restablecer» (dos toques) vuelve al
+  contenido original.
+- **Publicación opcional**: si se crea `assets/ediciones.json` con la misma
+  forma del JSON descargado, se sirve como contenido base para todos los
+  visitantes (los cambios locales tienen prioridad).
+
+### 2. Editor de texto sobre las páginas (botón «Editar texto» / tecla `E`)
+
+Dentro del lector, sobre cualquier revista abierta:
+
+- Un **clic sobre una página** añade un texto (título, nota, pie…).
+- **Arrastr** para colocarlo; la barra superior da fuente, tamaño, color,
+  negrita, cursiva y centrado.
+- Duplicar, deshacer (`Ctrl+Z`), borrar (`Supr`) o salir (`E` / `Esc`).
+- Los textos se guardan **por revista** en el navegador.
+- **PDF editado**: exporta la revista con los textos ya escritos encima
+  (compone página + textos en un PDF descargable, sin librerías externas).
 
 ## Cómo ejecutar
 
@@ -39,15 +58,16 @@ python -m http.server        # o: npx serve
 ```
 
 Si abres `index.html` con doble clic, la app lo detecta: la estantería usa el
-catálogo incluido y te ofrece **elegir el PDF a mano** para leerlo en la sesión.
+catálogo incluido y te ofrece **elegir el PDF a mano** para leerlo en la
+sesión.
 
 ## Estructura
 
 ```
 revista-digital/
-├── index.html                 Marcado y tipografías (Google Fonts con respaldo)
+├── index.html                 Marcado del sitio, secciones y barras de edición
 ├── styles.css                 Estética editorial oscura, responsive, accesible
-├── app.js                     Toda la lógica (biblioteca, publicación, flipbook)
+├── app.js                     Toda la lógica (sitio, editores, biblioteca, flipbook)
 └── assets/
     ├── revistas.json          Catálogo de la estantería (título, categoría, PDF…)
     ├── revista.pdf            Horizontes N.º 01 — Diseño (10 páginas)
@@ -57,6 +77,20 @@ revista-digital/
     ├── pagina.mp3             Sonido de paso de página
     └── LEEME.txt              Notas sobre los assets
 ```
+
+## Biblioteca de revistas
+
+- **Estantería** de portadas con lomo, buscador por título o categoría, chips
+  de filtro y orden (lo publicado primero, luego el catálogo).
+- **Publicar revista**: botón *Publicar* o **arrastra un PDF** a la ventana.
+  Se le genera la portada automáticamente (PDF.js rasteriza la página 1) y
+  queda persistida en el navegador (IndexedDB, con respaldo en memoria).
+- **Lector flipbook**: volteo 3D realista (StPageFlip), gestos táctiles,
+  esquinas interactivas y **sonido de hoja** (`assets/pagina.mp3`).
+- **Navegación**: dock flotante con deslizador, indicador de páginas, riel de
+  miniaturas, pantalla completa y atajos de teclado.
+- **Panel de ficha**: descripción editable (se guarda sola, por revista) y
+  datos del archivo.
 
 ## Añadir o quitar revistas del catálogo
 
@@ -87,23 +121,40 @@ en tu navegador. En cada ficha propia aparece un ✕ para quitarla.
 | `←` / `→`, `AvPág` / `RePág` | Página anterior / siguiente |
 | `Inicio` / `Fin` | Primera / última página |
 | `F` | Pantalla completa |
-| `Esc` | Cerrar el panel de información |
+| `E` | Activar / desactivar el editor de texto sobre páginas |
+| `Supr` | Borrar el texto seleccionado (en modo texto) |
+| `Ctrl+Z` | Deshacer (en modo texto) |
+| `Esc` | Salir del modo texto / cerrar el panel |
 | `Intro` / `Espacio` | Abrir la revista enfocada (en la estantería) |
+
+## Despliegue en Cloudflare Pages
+
+El sitio es 100 % estático: sube la carpeta tal cual.
+
+```bash
+npx wrangler pages project create noti-mision --production-branch main
+npx wrangler pages deploy . --project-name noti-mision
+```
+
+Cualquier CDN estático sirve (GitHub Pages, Netlify…): no hay backend.
 
 ## Personalización
 
 Los ajustes viven como constantes al principio de `app.js`: rutas de CDN y del
-sonido, ancho máximo de rasterizado (`ANCHO_RASTER`), categoría de las
-publicaciones propias (`CATEGORIA_PROPIA`) y claves de `localStorage`.
+sonido, secciones del sitio (`SECCIONES`), ancho máximo de rasterizado
+(`ANCHO_RASTER`), categoría de las publicaciones propias (`CATEGORIA_PROPIA`) y
+claves de `localStorage`.
 
 ## Tecnologías
 
 - [PDF.js](https://mozilla.github.io/pdf.js/) 3.11.174 (jsDelivr)
 - [StPageFlip](https://github.com/nicm/stpageflip) 2.0.7 (jsDelivr)
-- IndexedDB para las publicaciones propias.
+- IndexedDB para las publicaciones propias; localStorage para ediciones.
 - Sin frameworks: JavaScript puro, CSS puro, HTML semántico.
 
 ## Pruebas
 
-Suites jsdom (50 + 14 aserciones) que cubren estantería, filtros, apertura,
-navegación, panel, sonido, miniaturas, publicación y el modo `file://`.
+Suites jsdom (50 + 14 + 41 aserciones) que cubren estantería, filtros,
+apertura, navegación, panel, sonido, miniaturas, publicación, el modo
+`file://`, las rutas del sitio, el modo edición del sitio, el editor de capas
+sobre páginas y la exportación del PDF editado.

@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="Biblioteca de revistas digitales tipo flipbook: publica tus PDFs y léelos con volteo 3D, sonido de página y pantalla completa.">
+  <meta name="description" content="Noti-Misión · sitio del grupo juvenil con biblioteca de revistas digitales tipo flipbook: publica PDFs y léelos con volteo 3D, sonido de página y pantalla completa.">
   <meta name="theme-color" content="#0a0c10">
 
-  <title>Biblioteca · Revistas digitales</title>
+  <title>Noti-Misión · Sitio y biblioteca</title>
 
   <!-- ===== Tipografías (con respaldo del sistema si no hay conexión) ===== -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,18 +18,18 @@
        · StPageFlip (page-flip): animación 3D de pliegue de hoja + táctil. -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="app.js?v=6" defer></script>
 
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 
 <body class="vista-biblioteca">
   <a class="salto-contenido" href="#principal">Saltar al contenido</a>
 
   <!-- =========================================================
-       BARRA SUPERIOR · VISTA BIBLIOTECA
+       CABECERA DEL SITIO (menú + modo edición)
        ========================================================== -->
-  <header class="barra barra--biblioteca">
+  <header class="barra barra--sitio" id="cabeceraSitio">
     <div class="marca">
       <span class="marca__logo" aria-hidden="true">
         <svg viewBox="0 0 24 24" class="icono">
@@ -37,30 +37,364 @@
           <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H12v18h5.5a2.5 2.5 0 0 0 2.5-2.5v-13Z"/>
         </svg>
       </span>
-      <span class="marca__texto">Biblioteca<em>Digital</em></span>
+      <span class="marca__texto">Noti‑Misión<em data-editable="marca.lema">JUMISMAC</em></span>
     </div>
 
-    <!-- Buscador de la estantería -->
-    <div class="buscador">
-      <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input type="search" id="inputBusqueda" placeholder="Buscar por título o categoría…"
-             aria-label="Buscar revistas" autocomplete="off" spellcheck="false">
-    </div>
+    <button id="btnMenu" class="boton boton--icono menu-toggle" type="button"
+            aria-expanded="false" aria-controls="menuSitio" aria-label="Abrir el menú de secciones">
+      <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+    </button>
+
+    <nav class="menu" id="menuSitio" aria-label="Secciones del sitio">
+      <a href="#/inicio"       data-ruta="inicio">Inicio</a>
+      <a href="#/testimonios"  data-ruta="testimonios">Testimonios</a>
+      <a href="#/misiones"     data-ruta="misiones">Nuestras misiones</a>
+      <a href="#/extension"    data-ruta="extension">Extensión</a>
+      <a href="#/consejos"     data-ruta="consejos">Consejos</a>
+      <a href="#/informacion"  data-ruta="informacion">Información</a>
+      <a href="#/biblioteca"   data-ruta="biblioteca" class="menu__biblioteca">Biblioteca</a>
+    </nav>
 
     <div class="acciones">
-      <button id="btnPublicar" class="boton boton--acento" type="button"
-              title="Añadir un PDF a tu biblioteca">
-        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
-        <span class="boton__texto">Publicar revista</span>
+      <button id="btnModoEdicion" class="boton boton--suave" type="button" aria-pressed="false"
+              title="Editar los textos, fotos y bloques del sitio">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <span class="boton__texto">Editar sitio</span>
       </button>
-      <input type="file" id="inputPublicar" accept="application/pdf,.pdf" hidden>
     </div>
   </header>
 
   <!-- =========================================================
-       BARRA SUPERIOR · VISTA LECTOR
+       CONTENIDO DEL SITIO (secciones por hash #/nombre)
        ========================================================== -->
-  <header class="barra barra--lector" hidden>
+  <main class="sitio" id="principal">
+
+    <!-- ---------- INICIO ---------- -->
+    <section class="web" data-seccion="inicio" id="secInicio">
+
+      <div class="hero">
+        <!-- Hueco de foto: el equipo sube su imagen desde el modo edición -->
+        <figure class="foto foto--hero" data-foto="inicio.foto">
+          <img class="foto__img" alt="Foto principal del grupo" hidden>
+          <span class="foto__hueco" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="icono"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-6 6"/></svg>
+            <em>Sube la foto del grupo</em>
+          </span>
+          <button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>
+        </figure>
+
+        <div class="hero__texto">
+          <p class="epigrafe" data-editable="inicio.epigrafe">Nuestro grupo juvenil</p>
+          <h1 data-editable="inicio.titulo">Escribe aquí el nombre o lema de vuestro grupo</h1>
+          <p class="hero__lema texto-guia" data-editable="inicio.lema">
+            Un párrafo breve para presentaros: quiénes sois, a quién servís y
+            qué buscáis. Pulsa «Editar sitio» para escribirlo.
+          </p>
+        </div>
+      </div>
+
+      <div class="bloques">
+        <article class="bloque" data-bloque="inicio.quienes">
+          <h2 data-editable="inicio.quienes.titulo">¿Quiénes somos?</h2>
+          <p class="texto-guia" data-editable="inicio.quienes.texto">
+            Cuéntalo aquí: el nombre del grupo, de qué parroquia o comunidad
+            formáis, desde cuándo y qué os mueve.
+          </p>
+        </article>
+
+        <article class="bloque" data-bloque="inicio.historia">
+          <h2 data-editable="inicio.historia.titulo">Nuestra historia</h2>
+          <p class="texto-guia" data-editable="inicio.historia.texto">
+            Escribid los momentos clave: cómo empezó todo, quiénes os
+            acompañaron y qué hitos habéis celebrado desde entonces.
+          </p>
+        </article>
+
+        <article class="bloque" data-bloque="inicio.propuesta">
+          <h2 data-editable="inicio.propuesta.titulo">Nuestra propuesta y enfoque</h2>
+          <p class="texto-guia" data-editable="inicio.propuesta.texto">
+            Describid qué hacéis: misiones, formación, encuentros, obras…
+            y el estilo con el que lo hacéis.
+          </p>
+        </article>
+      </div>
+
+      <aside class="llamada">
+        <div>
+          <h2 data-editable="inicio.biblio.titulo">Nuestra biblioteca de revistas</h2>
+          <p class="texto-guia" data-editable="inicio.biblio.texto">
+            Aquí publicamos los boletines y revistas del grupo: ábrelas a
+            pantalla completa y pásales las hojas como un libro de verdad.
+          </p>
+        </div>
+        <a class="boton boton--acento" href="#/biblioteca">Ir a la biblioteca</a>
+      </aside>
+    </section>
+
+    <!-- ---------- TESTIMONIOS ---------- -->
+    <section class="web" data-seccion="testimonios" id="secTestimonios" hidden>
+      <header class="web__cabecera">
+        <p class="epigrafe" data-editable="testimonios.epigrafe">Voces del grupo</p>
+        <h1 data-editable="testimonios.titulo">Testimonios</h1>
+        <p class="web__lema texto-guia" data-editable="testimonios.lema">
+          Las palabras de los jóvenes cuentan mejor que cualquier folleto.
+          Deja aquí las citas que quieras destacar.
+        </p>
+      </header>
+
+      <div class="rejilla-testimonios">
+        <!-- Tarjetas guía: el equipo las rellena y puede ocultarlas una a una -->
+        <article class="testimonio" data-bloque="testimonio.1">
+          <figure class="foto foto--retrato" data-foto="testimonio.1.foto">
+            <img class="foto__img" alt="Retrato del testimonio" hidden>
+            <span class="foto__hueco" aria-hidden="true"><em>Añade una foto</em></span>
+            <button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>
+          </figure>
+          <blockquote class="texto-guia" data-editable="testimonio.1.cita">
+            «Escribe aquí la frase que quieras destacar de este joven…»
+          </blockquote>
+          <p class="testimonio__autor" data-editable="testimonio.1.autor">— Nombre y apellido</p>
+        </article>
+
+        <article class="testimonio" data-bloque="testimonio.2">
+          <figure class="foto foto--retrato" data-foto="testimonio.2.foto">
+            <img class="foto__img" alt="Retrato del testimonio" hidden>
+            <span class="foto__hueco" aria-hidden="true"><em>Añade una foto</em></span>
+            <button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>
+          </figure>
+          <blockquote class="texto-guia" data-editable="testimonio.2.cita">
+            «Otra frase bonita, otro joven del grupo…»
+          </blockquote>
+          <p class="testimonio__autor" data-editable="testimonio.2.autor">— Nombre y apellido</p>
+        </article>
+
+        <article class="testimonio" data-bloque="testimonio.3">
+          <figure class="foto foto--retrato" data-foto="testimonio.3.foto">
+            <img class="foto__img" alt="Retrato del testimonio" hidden>
+            <span class="foto__hueco" aria-hidden="true"><em>Añade una foto</em></span>
+            <button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>
+          </figure>
+          <blockquote class="texto-guia" data-editable="testimonio.3.cita">
+            «Aquí va el testimonio de otro miembro del grupo…»
+          </blockquote>
+          <p class="testimonio__autor" data-editable="testimonio.3.autor">— Nombre y apellido</p>
+        </article>
+
+        <article class="testimonio" data-bloque="testimonio.4">
+          <figure class="foto foto--retrato" data-foto="testimonio.4.foto">
+            <img class="foto__img" alt="Retrato del testimonio" hidden>
+            <span class="foto__hueco" aria-hidden="true"><em>Añade una foto</em></span>
+            <button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>
+          </figure>
+          <blockquote class="texto-guia" data-editable="testimonio.4.cita">
+            «Y aquí el último hueco de testimonio…»
+          </blockquote>
+          <p class="testimonio__autor" data-editable="testimonio.4.autor">— Nombre y apellido</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ---------- NUESTRAS MISIONES ---------- -->
+    <section class="web" data-seccion="misiones" id="secMisiones" hidden>
+      <header class="web__cabecera">
+        <p class="epigrafe" data-editable="misiones.epigrafe">Servicio y salida</p>
+        <h1 data-editable="misiones.titulo">Nuestras misiones</h1>
+        <p class="web__lema texto-guia" data-editable="misiones.lema">
+          Cuenta aquí a dónde vais, cuándo y con qué espíritu.
+        </p>
+      </header>
+
+      <div class="bloques">
+        <article class="bloque" data-bloque="misiones.donde">
+          <h2 data-editable="misiones.donde.titulo">¿Dónde servimos?</h2>
+          <p class="texto-guia" data-editable="misiones.donde.texto">
+            Escribe las comunidades, barrios o localidades donde realizáis
+            misiones y qué tipo de servicio hacéis en cada una.
+          </p>
+        </article>
+
+        <article class="bloque" data-bloque="misiones.calendario">
+          <h2 data-editable="misiones.calendario.titulo">Próximas salidas</h2>
+          <p class="texto-guia" data-editable="misiones.calendario.texto">
+            Deja aquí las fechas de las próximas misiones o campamentos para
+            que nadie se quede sin enterarse.
+          </p>
+        </article>
+      </div>
+
+      <figure class="foto foto--paisaje" data-foto="misiones.foto">
+        <img class="foto__img" alt="Foto de una misión" hidden>
+        <span class="foto__hueco" aria-hidden="true">
+          <svg viewBox="0 0 24 24" class="icono"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-6 6"/></svg>
+          <em>Sube una foto de vuestras misiones</em>
+        </span>
+        <button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>
+      </figure>
+    </section>
+
+    <!-- ---------- EXTENSIÓN ---------- -->
+    <section class="web" data-seccion="extension" id="secExtension" hidden>
+      <header class="web__cabecera">
+        <p class="epigrafe" data-editable="extension.epigrafe">Más allá del grupo</p>
+        <h1 data-editable="extension.titulo">Extensión</h1>
+        <p class="web__lema texto-guia" data-editable="extension.lema">
+          ¿Tenéis un canal, un proyecto especial o una iniciativa que
+         amplía el grupo? Cuéntala aquí.
+        </p>
+      </header>
+
+      <div class="bloques">
+        <article class="bloque" data-bloque="extension.proyecto">
+          <h2 data-editable="extension.proyecto.titulo">Nuestro proyecto de extensión</h2>
+          <p class="texto-guia" data-editable="extension.proyecto.texto">
+            Describe en qué consiste la extensión del grupo: redes, radio,
+            música, formación abierta… lo que estéis construyendo.
+          </p>
+        </article>
+
+        <article class="bloque" data-bloque="extension.unete">
+          <h2 data-editable="extension.unete.titulo">¿Cómo unirse?</h2>
+          <p class="texto-guia" data-editable="extension.unete.texto">
+            Explica qué hace falta para participar y a quién deben escribir
+            para sumarse.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ---------- CONSEJOS ---------- -->
+    <section class="web" data-seccion="consejos" id="secConsejos" hidden>
+      <header class="web__cabecera">
+        <p class="epigrafe" data-editable="consejos.epigrafe">Para otros grupos</p>
+        <h1 data-editable="consejos.titulo">Consejos</h1>
+        <p class="web__lema texto-guia" data-editable="consejos.lema">
+          Lo que aprendéis sirve a otros: compartid aquí lo que os ha
+          funcionado en el trabajo con jóvenes.
+        </p>
+      </header>
+
+      <div class="bloques">
+        <article class="bloque" data-bloque="consejo.1">
+          <h2 data-editable="consejo.1.titulo">Título del primer consejo</h2>
+          <p class="texto-guia" data-editable="consejo.1.texto">
+            Desarrolla aquí el consejo: de qué trata, por qué os ayudó y
+            cómo lo aplicáis en el grupo.
+          </p>
+        </article>
+
+        <article class="bloque" data-bloque="consejo.2">
+          <h2 data-editable="consejo.2.titulo">Título del segundo consejo</h2>
+          <p class="texto-guia" data-editable="consejo.2.texto">
+            Otro bloque de consejo listo para escribir. Puedes ocultar los
+            bloques que no necesites con el botón ✕ del modo edición.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ---------- INFORMACIÓN ---------- -->
+    <section class="web" data-seccion="informacion" id="secInformacion" hidden>
+      <header class="web__cabecera">
+        <p class="epigrafe" data-editable="informacion.epigrafe">Hablad con nosotros</p>
+        <h1 data-editable="informacion.titulo">Información</h1>
+        <p class="web__lema texto-guia" data-editable="informacion.lema">
+          Deja aquí vuestros datos de contacto y redes para que cualquiera
+          os pueda encontrar.
+        </p>
+      </header>
+
+      <div class="bloques">
+        <article class="bloque" data-bloque="informacion.contacto">
+          <h2 data-editable="informacion.contacto.titulo">Contacto</h2>
+          <p class="texto-guia" data-editable="informacion.contacto.texto">
+            Correo electrónico, teléfono o horario de encuentros: lo que
+            queráis publicar.
+          </p>
+        </article>
+
+        <article class="bloque" data-bloque="informacion.redes">
+          <h2 data-editable="informacion.redes.titulo">Redes sociales</h2>
+          <ul class="lista-redes">
+            <li><a href="#" data-link data-editable="informacion.redes.1">Enlace a Instagram (pulsa encima en modo edición para cambiar la URL)</a></li>
+            <li><a href="#" data-link data-editable="informacion.redes.2">Enlace a TikTok</a></li>
+            <li><a href="#" data-link data-editable="informacion.redes.3">Enlace a YouTube</a></li>
+            <li><a href="#" data-link data-editable="informacion.redes.4">Enlace al canal de WhatsApp</a></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ---------- BIBLIOTECA (revistas digitales) ---------- -->
+    <section class="web biblioteca" data-seccion="biblioteca" id="vistaBiblioteca" hidden>
+      <div class="biblioteca__barra">
+        <div class="buscador">
+          <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="inputBusqueda" placeholder="Buscar por título o categoría…"
+                 aria-label="Buscar revistas" autocomplete="off" spellcheck="false">
+        </div>
+
+        <button id="btnPublicar" class="boton boton--acento" type="button"
+                title="Añadir un PDF a tu biblioteca">
+          <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
+          <span class="boton__texto">Publicar revista</span>
+        </button>
+        <input type="file" id="inputPublicar" accept="application/pdf,.pdf" hidden>
+      </div>
+
+      <section class="biblioteca__cabecera">
+        <p class="epigrafe" id="contarRevistas">Cargando…</p>
+        <h2 data-editable="biblioteca.titulo">Nuestra biblioteca</h2>
+        <p class="biblioteca__lema texto-guia" data-editable="biblioteca.lema">
+          Elige una portada para hojearla a pantalla completa, o publica un
+          PDF propio para que aparezca aquí ordenado con el resto.
+        </p>
+        <div class="chips" id="chipsCategorias" role="tablist" aria-label="Filtrar por categoría"></div>
+      </section>
+
+      <div class="estanteria" id="estanteria"><!-- fichas generadas por app.js --></div>
+
+      <div class="biblioteca__vacio" id="bibliotecaVacia" hidden>
+        <p class="biblioteca__vacio-texto">Ninguna revista coincide con tu búsqueda.</p>
+        <button class="boton" type="button" id="btnVerTodas">Ver todas</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================
+       PIE DEL SITIO
+       ========================================================== -->
+  <footer class="pie" id="pieSitio">
+    <p data-editable="pie.texto">Noti‑Misión · sitio con biblioteca de revistas digitales</p>
+  </footer>
+
+  <!-- =========================================================
+       BARRA DEL MODO EDICIÓN DEL SITIO
+       ========================================================== -->
+  <div class="barra-edicion" id="barraEdicion" hidden>
+    <p class="barra-edicion__ayuda" id="ayudaEdicion">
+      Pulsa cualquier <strong>texto</strong> para escribir; en las
+      <strong>fotos</strong>, usa «Cambiar foto»; el ✕ de cada bloque lo oculta.
+      Todo se guarda en este navegador.
+    </p>
+    <div class="barra-edicion__botones">
+      <button id="btnDescargarCambios" class="boton boton--suave" type="button"
+              title="Guardar una copia de los cambios en un archivo">Descargar cambios</button>
+      <button id="btnImportarCambios" class="boton boton--suave" type="button"
+              title="Cargar un archivo de cambios descargado antes">Importar cambios</button>
+      <input type="file" id="inputImportar" accept="application/json,.json" hidden>
+      <input type="file" id="inputImagen" accept="image/*" hidden>
+      <button id="btnMostrarOcultos" class="boton boton--suave" type="button"
+              title="Volver a mostrar todos los bloques ocultos">Mostrar bloques ocultos</button>
+      <button id="btnRestablecerSitio" class="boton boton--suave" type="button"
+              title="Volver al contenido original">Restablecer</button>
+      <button id="btnSalirEdicion" class="boton boton--acento" type="button">Salir</button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       BARRA LECTOR (controles del flipbook)
+       ========================================================== -->
+  <header class="barra barra--lector" id="barraLector" hidden>
     <button id="btnVolver" class="boton boton--suave" type="button">
       <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
       <span class="boton__texto">Biblioteca</span>
@@ -72,6 +406,18 @@
     </div>
 
     <div class="acciones">
+      <button id="btnEditarTexto" class="boton boton--suave" type="button" aria-pressed="false"
+              title="Añadir y editar texto sobre las páginas (tecla E)">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <span class="boton__texto">Editar texto</span>
+      </button>
+
+      <button id="btnExportar" class="boton boton--suave" type="button"
+              title="Descargar el PDF con los textos añadidos ya escritos encima">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        <span class="boton__texto">PDF editado</span>
+      </button>
+
       <button id="btnSonido" class="boton boton--icono" type="button" aria-pressed="true"
               title="Activar o silenciar el sonido de página">
         <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path class="sonido__onda" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="sonido__onda" d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
@@ -85,29 +431,7 @@
   </header>
 
   <!-- =========================================================
-       VISTA BIBLIOTECA (estantería)
-       ========================================================== -->
-  <main class="biblioteca" id="vistaBiblioteca">
-    <section class="biblioteca__cabecera" id="principal">
-      <p class="epigrafe" id="contarRevistas">Cargando…</p>
-      <h2>Tu biblioteca</h2>
-      <p class="biblioteca__lema">
-        Elige una portada para hojearla a pantalla completa, o publica un PDF
-        propio para que aparezca aquí ordenado con el resto.
-      </p>
-      <div class="chips" id="chipsCategorias" role="tablist" aria-label="Filtrar por categoría"></div>
-    </section>
-
-    <div class="estanteria" id="estanteria"><!-- fichas generadas por app.js --></div>
-
-    <div class="biblioteca__vacio" id="bibliotecaVacia" hidden>
-      <p class="biblioteca__vacio-texto">Ninguna revista coincide con tu búsqueda.</p>
-      <button class="boton" type="button" id="btnVerTodas">Ver todas</button>
-    </div>
-  </main>
-
-  <!-- =========================================================
-       VISTA LECTOR (flipbook)
+       LECTOR (flipbook)
        ========================================================== -->
   <main class="visor" id="vistaLector" hidden>
     <!-- Zona centrada donde StPageFlip inserta el libro -->
@@ -150,6 +474,37 @@
       </button>
     </div>
   </main>
+
+  <!-- =========================================================
+       BARRA DEL EDITOR DE TEXTO SOBRE PÁGINAS (capas)
+       ========================================================== -->
+  <div class="barra-capas" id="barraCapas" hidden>
+    <select id="capaFuente" class="capas__fuente" aria-label="Fuente del texto">
+      <option value="serif">Serif</option>
+      <option value="sans">Sin serif</option>
+      <option value="mono">Monoespaciada</option>
+    </select>
+
+    <button id="capaMas" class="boton boton--icono" type="button" title="Texto más grande">A+</button>
+    <button id="capaMenos" class="boton boton--icono" type="button" title="Texto más pequeño">A−</button>
+
+    <span id="capaTamano" class="capas__tamano" aria-live="polite">3,2 %</span>
+
+    <input type="color" id="capaColor" class="capas__color" value="#14161c" title="Color del texto">
+
+    <button id="capaNegrita" class="boton boton--icono" type="button" aria-pressed="false" title="Negrita"><strong>N</strong></button>
+    <button id="capaCursiva" class="boton boton--icono" type="button" aria-pressed="false" title="Cursiva"><em>C</em></button>
+    <button id="capaCentrada" class="boton boton--icono" type="button" aria-pressed="false" title="Centrado">≡</button>
+
+    <span class="capas__sep" aria-hidden="true"></span>
+
+    <button id="capaDuplicar" class="boton boton--icono" type="button" title="Duplicar el texto">⧉</button>
+    <button id="capaDeshacer" class="boton boton--icono" type="button" title="Deshacer (Ctrl+Z)">↶</button>
+    <button id="capaBorrar" class="boton boton--icono" type="button" title="Borrar el texto (Supr)">✕</button>
+  </div>
+
+  <!-- Chip que indica el modo de edición activo -->
+  <span class="chip-modo" id="chipModo" hidden>Modo edición · <kbd>E</kbd> para salir</span>
 
   <!-- =========================================================
        PIEZAS COMPARTIDAS: overlays, panel y avisos
@@ -233,7 +588,8 @@
         <p class="nota">
           Usa las flechas del teclado o los botones del dock para pasar hoja,
           <kbd>F</kbd> para pantalla completa y el deslizador para saltar a
-          cualquier página. Los cambios en la descripción se guardan solos.
+          cualquier página. Con «Editar texto» añades títulos y notas sobre
+          las páginas; los cambios se guardan solos.
         </p>
       </section>
     </div>

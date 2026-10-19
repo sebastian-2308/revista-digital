@@ -477,14 +477,20 @@ body.arastrando .zona-arrastre { display: grid; }
   flex: 0 0 auto;
 }
 
-/* ========================== 05. VISTA BIBLIOTECA ========================= */
-.biblioteca {
+/* ==================== 05. CONTENIDO DEL SITIO ============================ */
+.sitio {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: clamp(26px, 4.5vh, 54px) clamp(18px, 4vw, 56px) 70px;
   position: relative;
   z-index: 1;
+}
+
+.web {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: clamp(26px, 4.5vh, 54px) clamp(18px, 4vw, 56px) 70px;
+  animation: aparecer 0.5s var(--curva) backwards;
 }
 
 .biblioteca__cabecera {
@@ -1099,3 +1105,442 @@ body.pantalla-completa-oculta * { cursor: none !important; }
 }
 
 ::-webkit-scrollbar-thumb:hover { background: var(--borde-fuerte); }
+
+/* ==================== 10. CABECERA Y MENÚ DEL SITIO ====================== */
+.barra--sitio { position: relative; gap: 10px; }
+
+.menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.menu::-webkit-scrollbar { display: none; }
+
+.menu a {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--texto-3);
+  text-decoration: none;
+  font: 500 0.88rem var(--fuente-texto);
+  white-space: nowrap;
+  transition: color 0.2s var(--curva), background 0.2s var(--curva);
+}
+
+.menu a:hover { color: var(--texto); background: var(--superficie-2); }
+
+.menu a[aria-current="page"] {
+  color: var(--acento);
+  background: var(--acento-tenue);
+}
+
+.menu__biblioteca { margin-left: auto; }
+
+.menu-toggle { display: none; }
+
+.barra--sitio .acciones { flex: 0 0 auto; }
+
+/* ==================== 11. CONTENIDO WEB ================================= */
+.web__cabecera {
+  max-width: 800px;
+  margin-bottom: clamp(24px, 4vw, 44px);
+}
+
+.web__cabecera h1 {
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  margin: 6px 0 14px;
+}
+
+.web__lema {
+  color: var(--texto-2);
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
+  line-height: 1.65;
+}
+
+.texto-guia { color: var(--texto-2); line-height: 1.7; }
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(240px, 380px) 1fr;
+  gap: clamp(20px, 4vw, 48px);
+  align-items: center;
+  margin-bottom: clamp(28px, 5vw, 56px);
+}
+
+.hero__texto h1 {
+  font-size: clamp(2.2rem, 6vw, 3.8rem);
+  margin: 8px 0 16px;
+}
+
+.hero__lema { font-size: clamp(1rem, 1.8vw, 1.2rem); }
+
+.bloques {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+  margin-bottom: clamp(28px, 5vw, 48px);
+}
+
+.bloque {
+  position: relative;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  padding: clamp(18px, 3vw, 30px);
+}
+
+.bloque h2 {
+  font-size: clamp(1.3rem, 2.6vw, 1.7rem);
+  margin-bottom: 10px;
+}
+
+.rejilla-testimonios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 18px;
+}
+
+.testimonio {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.testimonio blockquote {
+  font-family: var(--fuente-display);
+  font-size: 1.08rem;
+  line-height: 1.55;
+  color: var(--texto);
+}
+
+.testimonio__autor {
+  margin-top: auto;
+  color: var(--texto-3);
+  font-size: 0.9rem;
+}
+
+.llamada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: linear-gradient(120deg, rgba(230, 180, 80, 0.10), rgba(230, 180, 80, 0.02));
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  padding: clamp(20px, 3.5vw, 34px);
+}
+
+.llamada h2 {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  margin-bottom: 8px;
+}
+
+.lista-redes {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.lista-redes a {
+  color: var(--texto-2);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--borde-fuerte);
+}
+
+.lista-redes a:hover { color: var(--acento); }
+
+/* ==================== 12. FOTOS CON HUECO =============================== */
+.foto {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radio-lg);
+  overflow: hidden;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+}
+
+.foto--hero { aspect-ratio: 4 / 5; }
+.foto--retrato { aspect-ratio: 1 / 1; }
+.foto--paisaje {
+  aspect-ratio: 21 / 9;
+  margin-bottom: clamp(24px, 4vw, 40px);
+}
+
+.foto__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.foto__hueco {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: var(--texto-3);
+  font: 400 0.85rem var(--fuente-texto);
+  background:
+    radial-gradient(120% 100% at 30% 0%, rgba(230, 180, 80, 0.08), transparent 60%),
+    linear-gradient(160deg, var(--superficie-2), var(--superficie));
+}
+
+.foto__hueco .icono { width: 34px; height: 34px; opacity: 0.6; }
+
+.foto__hueco em {
+  font-style: normal;
+  text-align: center;
+  padding: 0 14px;
+}
+
+.foto__cambiar {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: none;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+body.modo-edicion .foto__cambiar { display: inline-flex; }
+
+/* ==================== 13. PIE DEL SITIO ================================= */
+.pie {
+  flex: 0 0 auto;
+  padding: 18px clamp(14px, 3vw, 26px);
+  border-top: 1px solid var(--borde);
+  color: var(--texto-3);
+  font-size: 0.85rem;
+  text-align: center;
+  z-index: 1;
+}
+
+/* ==================== 14. MODO EDICIÓN DEL SITIO ======================== */
+body.modo-edicion .sitio { padding-bottom: 96px; }
+
+body.modo-edicion [data-editable] {
+  outline: 1px dashed rgba(230, 180, 80, 0.55);
+  outline-offset: 3px;
+  border-radius: 6px;
+  cursor: text;
+  transition: background 0.15s var(--curva);
+}
+
+body.modo-edicion [data-editable]:hover { background: rgba(230, 180, 80, 0.06); }
+
+body.modo-edicion [data-editable]:focus {
+  outline: 2px solid var(--acento);
+  background: rgba(230, 180, 80, 0.08);
+}
+
+.bloque__ocultar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: var(--superficie-2);
+  color: var(--texto-2);
+  cursor: pointer;
+}
+
+.bloque__ocultar:hover {
+  color: var(--peligro);
+  border-color: var(--peligro);
+}
+
+.bloque__ocultar .icono { width: 15px; height: 15px; }
+
+body.modo-edicion [data-bloque] .bloque__ocultar { display: grid; }
+
+.barra-edicion,
+.barra-capas {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 14px;
+  background: rgba(12, 14, 19, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.barra-edicion { bottom: 14px; }
+
+.barra-edicion__ayuda {
+  color: var(--texto-3);
+  font-size: 0.78rem;
+  max-width: 340px;
+  line-height: 1.45;
+}
+
+.barra-edicion__ayuda strong { color: var(--texto-2); }
+
+.barra-edicion__botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.barra-edicion .peligro {
+  background: rgba(224, 104, 92, 0.16);
+  border-color: var(--peligro);
+  color: var(--peligro);
+}
+
+/* ==================== 15. EDITOR DE TEXTO (CAPAS) ======================= */
+.barra-capas {
+  top: calc(var(--alto-barra) + 12px);
+  bottom: auto;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.capas__fuente {
+  background: var(--superficie-2);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font: 500 0.82rem var(--fuente-texto);
+}
+
+.capas__tamano {
+  min-width: 52px;
+  text-align: center;
+  color: var(--texto-3);
+  font: 500 0.78rem var(--fuente-texto);
+}
+
+.capas__color {
+  width: 34px;
+  height: 34px;
+  padding: 2px;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.capas__sep {
+  width: 1px;
+  height: 22px;
+  background: var(--borde);
+  margin: 0 4px;
+}
+
+.pagina { position: relative; }
+
+.capa {
+  position: absolute;
+  z-index: 5;
+  cursor: move;
+  touch-action: none;
+}
+
+.capa__texto {
+  min-height: 1em;
+  line-height: 1.25;
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
+}
+
+.capa:hover .capa__texto,
+.capa--seleccionada .capa__texto {
+  outline: 1px dashed rgba(230, 180, 80, 0.75);
+  outline-offset: 4px;
+}
+
+.capa__etiqueta {
+  position: absolute;
+  top: -14px;
+  left: 0;
+  display: none;
+  font: 600 9px var(--fuente-texto);
+  letter-spacing: 0.06em;
+  color: #14161c;
+  background: var(--acento);
+  border-radius: 4px;
+  padding: 2px 5px;
+  pointer-events: none;
+}
+
+.capa--seleccionada .capa__etiqueta { display: block; }
+
+body.modo-texto .zona-libro { cursor: crosshair; }
+body.modo-texto .capa { cursor: move; }
+body.modo-texto .capa__texto { cursor: text; }
+
+.chip-modo {
+  position: fixed;
+  top: calc(var(--alto-barra) + 66px);
+  right: 16px;
+  z-index: 70;
+  padding: 8px 14px;
+  background: var(--acento);
+  color: #14161c;
+  font: 600 0.8rem var(--fuente-texto);
+  border-radius: 999px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
+}
+
+.chip-modo kbd {
+  background: rgba(20, 22, 28, 0.15);
+  border: none;
+  color: inherit;
+  padding: 0 4px;
+}
+
+/* ==================== 16. RESPONSIVE DEL SITIO ========================== */
+@media (max-width: 940px) {
+  .menu-toggle { display: inline-flex; order: 3; }
+  .barra--sitio .acciones { order: 2; margin-left: auto; }
+
+  .menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 10px 14px 14px;
+    background: rgba(12, 14, 19, 0.97);
+    border-bottom: 1px solid var(--borde);
+    display: none;
+  }
+
+  .menu.menu--abierto { display: flex; }
+  .menu a { padding: 11px 14px; }
+  .menu__biblioteca { margin-left: 0; }
+
+  .hero { grid-template-columns: 1fr; }
+  .foto--hero { max-width: 420px; }
+
+  .barra-edicion__ayuda { max-width: none; }
+}
