@@ -45,6 +45,13 @@ const CLAVE_DESCRIPCION = 'revista:descripcion:';
 const CLAVE_SITIO = 'revista:sitio';
 const CLAVE_CAPAS = 'revista:capas:';
 
+/** Huella FNV-1a de la contraseña que protege la configuración del sitio.
+    Al ser un sitio estático esto no es seguridad real (el código es público):
+    sirve para que nadie entre al editor por accidente. Para cambiarla, abre la
+    consola y ejecuta __interno.calcularHuella('nueva-contraseña'); pega el
+    resultado aquí. */
+const HUELLA_CLAVE_SITIO = 'c22adf43';
+
 /** Secciones del sitio (enrutado por hash #/nombre). */
 const SECCIONES = ['inicio', 'testimonios', 'misiones', 'extension',
   'consejos', 'informacion', 'biblioteca'];
@@ -111,6 +118,7 @@ const estado = {
 
   // modo edición del sitio
   modoEdicionSitio: false,
+  sitioDesbloqueado: false,     // contraseña correcta en esta visita
   sitio: { textos: {}, fotos: {}, ocultos: [] },
 
   // lectura actual
@@ -161,6 +169,12 @@ const ui = {
   btnMenu: $('#btnMenu'),
   btnModoEdicion: $('#btnModoEdicion'),
   barraEdicion: $('#barraEdicion'),
+  modalClave: $('#modalClave'),
+  formClave: $('#formClave'),
+  inputClave: $('#inputClave'),
+  errorClave: $('#errorClave'),
+  btnCancelarClave: $('#btnCancelarClave'),
+  btnEntrarClave: $('#btnEntrarClave'),
   btnDescargarCambios: $('#btnDescargarCambios'),
   btnImportarCambios: $('#btnImportarCambios'),
   inputImportar: $('#inputImportar'),
@@ -1553,6 +1567,63 @@ function aplicarEdicionesSitio() {
   });
 }
 
+/** Huella FNV-1a (32 bits) para no guardar la contraseña en texto plano. */
+function huellaClave(texto) {
+  let h = 2166136261;
+  for (let i = 0; i < texto.length; i++) {
+    h ^= texto.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+let focoAntesClave = null;
+
+/** Muestra u oculta el diálogo de contraseña de la configuración. */
+function alternarModalClave(abrir) {
+  if (abrir) {
+    focoAntesClave = document.activeElement;
+    ui.inputClave.value = '';
+    ocultarErrorClave();
+    ui.modalClave.classList.remove('oculto');
+    setTimeout(() => ui.inputClave.focus(), 30);
+  } else {
+    ui.modalClave.classList.add('oculto');
+    ui.inputClave.value = '';
+    ocultarErrorClave();
+    if (focoAntesClave && typeof focoAntesClave.focus === 'function') {
+      focoAntesClave.focus();
+    }
+    focoAntesClave = null;
+  }
+}
+
+/** Quita el aviso de error y el estado inválido del campo. */
+function ocultarErrorClave() {
+  ui.errorClave.hidden = true;
+  ui.inputClave.removeAttribute('aria-invalid');
+  ui.modalClave.classList.remove('clave--error');
+}
+
+/** Comprueba la contraseña y, si es correcta, abre la configuración. */
+function entrarConfiguracion(ev) {
+  if (ev) ev.preventDefault();
+
+  if (huellaClave(ui.inputClave.value) !== HUELLA_CLAVE_SITIO) {
+    ui.errorClave.hidden = false;
+    ui.inputClave.setAttribute('aria-invalid', 'true');
+    ui.modalClave.classList.remove('clave--error');
+    void ui.modalClave.offsetWidth; // reinicia la animación de aviso
+    ui.modalClave.classList.add('clave--error');
+    ui.inputClave.select();
+    return;
+  }
+
+  estado.sitioDesbloqueado = true;
+  alternarModalClave(false);
+  alternarModoEdicionSitio(true);
+}
+
 /** Alterna el modo edición del sitio (textos, fotos y bloques). */
 function alternarModoEdicionSitio(activo) {
   estado.modoEdicionSitio = activo;
@@ -1568,7 +1639,7 @@ function alternarModoEdicionSitio(activo) {
   if (activo) {
     if (estado.vista === 'lector') mostrarVista('biblioteca');
     inyectarBotonesBloque();
-    avisar('Modo edición: pulsa un texto para escribir, «Cambiar foto» en ' +
+    avisar('Configuración: pulsa un texto para escribir, «Cambiar foto» en ' +
       'las fotos, «Agregar bloque» para añadir contenido nuevo y ✕ en los ' +
       'bloques para ocultarlos (o borrar los agregados).');
   } else {
@@ -2601,9 +2672,47 @@ function enlazarEventos() {
     ui.btnMenu.setAttribute('aria-expanded', String(abierto));
   });
 
-  /* --- Modo edición del sitio --- */
-  ui.btnModoEdicion.addEventListener('click',
-    () => alternarModoEdicionSitio(!estado.modoEdicionSitio));
+  /* --- Configuración del sitio (protegida con contraseña) --- */
+  ui.btnModoEdicion.addEventListener('click', () => {
+    if (estado.modoEdicionSitio) {
+      alternarModoEdicionSitio(false);
+    } else if (estado.sitioDesbloqueado) {
+      alternarModoEdicionSitio(true);
+    } else {
+      alternarModalClave(true);
+    }
+  });
+  ui.formClave.addEventListener('submit', entrarConfiguracion);
+  ui.btnCancelarClave.addEventListener('click', () => alternarModalClave(false));
+  ui.inputClave.addEventListener('input', ocultarErrorClave);
+  ui.modalClave.addEventListener('click', (e) => {
+    // clic en el fondo del overlay: cierra el diálogo
+    if (e.target === ui.modalClave) alternarModalClave(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (ui.modalClave.classList.contains('oculto')) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      alternarModalClave(false);
+      return;
+    }
+
+    if (e.key !== 'Tab') return;
+    // Mantén el foco dentro del diálogo mientras está abierto.
+    const focos = Array.from(ui.modalClave.querySelectorAll('input, button'))
+      .filter((el) => !el.disabled && el.offsetParent !== null);
+    if (!focos.length) return;
+    const primero = focos[0];
+    const ultimo = focos[focos.length - 1];
+    if (e.shiftKey && document.activeElement === primero) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault();
+      primero.focus();
+    }
+  });
   ui.btnSalirEdicion.addEventListener('click', () => alternarModoEdicionSitio(false));
   ui.btnDescargarCambios.addEventListener('click', descargarCambiosSitio);
   ui.btnImportarCambios.addEventListener('click', () => ui.inputImportar.click());
@@ -2854,6 +2963,9 @@ window.__interno = {
   aplicarRuta,
   irA,
   alternarModoEdicionSitio,
+  alternarModalClave,
+  entrarConfiguracion,
+  calcularHuella: huellaClave,
   aplicarEdicionesSitio,
   cargarSitio,
   guardarSitio,

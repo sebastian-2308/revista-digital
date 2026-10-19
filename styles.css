@@ -1984,3 +1984,97 @@ p, li { text-wrap: pretty; }
 @media (max-width: 760px) {
   .hero .foto--hero { margin-inline: auto; }
 }
+
+/* =========================================================
+   20. CONTRASEÑA DE LA CONFIGURACIÓN
+   ========================================================= */
+
+.clave {
+  width: 100%;
+  max-width: 380px;
+  text-align: left;
+}
+
+.clave__icono {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 16px;
+  border-radius: 13px;
+  background: var(--acento-tenue);
+  color: var(--acento);
+}
+
+.clave__icono .icono { width: 24px; height: 24px; }
+
+.clave h2 {
+  font-size: clamp(1.4rem, 4vw, 1.7rem);
+  margin: 8px 0 10px;
+  letter-spacing: -0.01em;
+}
+
+.clave__ayuda {
+  color: var(--texto-2);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.clave__etiqueta {
+  display: block;
+  margin-bottom: 8px;
+  font: 600 0.72rem var(--fuente-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--texto-3);
+}
+
+.clave input[type="password"] {
+  width: 100%;
+  min-height: 46px;
+  font: 500 1rem var(--fuente-texto);
+  color: var(--texto);
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.clave input[type="password"]:focus {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-tenue);
+}
+
+.clave input[aria-invalid="true"] { border-color: var(--peligro); }
+
+.clave__error {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: var(--peligro);
+}
+
+.clave__acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.clave__acciones .boton { min-width: 104px; }
+
+@keyframes negar {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-7px); }
+  75% { transform: translateX(7px); }
+}
+
+.clave--error input[type="password"] { animation: negar 0.24s ease-in-out; }
+
+/* Móvil muy estrecho: botones que reparten el ancho */
+@media (max-width: 420px) {
+  .clave { padding: 26px 20px 22px; }
+  .clave__acciones .boton { flex: 1 1 auto; min-width: 0; }
+}

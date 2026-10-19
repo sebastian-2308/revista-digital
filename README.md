@@ -1,8 +1,9 @@
 # Noti‑Misión · Sitio y biblioteca de revistas digitales
 
 Sitio completo del grupo juvenil **Noti‑Misión (JUMISMAC)** con biblioteca de
-revistas digitales: secciones navegables, modo edición para el equipo y un
-lector flipbook con efecto 3D de paso de página. Tres archivos principales
+revistas digitales: secciones navegables, configuración del sitio protegida
+con contraseña para el equipo y un lector flipbook con efecto 3D de paso de
+página. Tres archivos principales
 (`index.html`, `styles.css`, `app.js`), sin build ni dependencias locales: se
 abre y funciona.
 
@@ -33,7 +34,7 @@ cualquiera.
 
 ## Dos formas de edición (100 % editable)
 
-### 1. Modo edición del sitio (botón «Editar sitio»)
+### 1. Configuración del sitio (botón «Configuración»)
 
 - **Panel lateral**: en escritorio, los controles de edición aparecen en una
   barra lateral derecha que no tapa el contenido (el sitio reserva ese
@@ -60,6 +61,14 @@ cualquiera.
 - **Publicación opcional**: si se crea `assets/ediciones.json` con la misma
   forma del JSON descargado, se sirve como contenido base para todos los
   visitantes (los cambios locales tienen prioridad).
+- **Contraseña**: el botón «Configuración» pide la contraseña antes de abrir
+  el editor; solo se pide una vez por visita (se olvida al recargar). En el
+  código solo se guarda su huella (FNV‑1a), nunca la contraseña en texto
+  plano. Para cambiarla: ejecuta en la consola del navegador
+  `__interno.calcularHuella('nueva-clave')` y pon el resultado en
+  `HUELLA_CLAVE_SITIO` (`app.js`).
+  > Nota: en un sitio estático la contraseña evita entradas accidentales al
+  > editor; no sustituye a la seguridad de un servidor.
 
 ### 2. Editor de texto sobre las páginas (botón «Editar texto» / tecla `E`)
 
@@ -187,11 +196,12 @@ claves de `localStorage`.
 
 ## Pruebas
 
-Suites jsdom (50 + 14 + 64 + 14 aserciones) que cubren estantería, filtros,
+Suites jsdom (50 + 14 + 70 + 14 aserciones) que cubren estantería, filtros,
 apertura, navegación, panel, sonido, miniaturas, publicación, el modo
-`file://`, las rutas del sitio, el modo edición del sitio (con la galería de
-bloques predefinidos), el editor de capas sobre páginas, la resiliencia sin
-CDN y la exportación del PDF editado. Además, una comprobación visual con
-Chrome headless (42 aserciones) verifica números de sección, fuentes, trama de
-los huecos, ausencia de desbordes de 390 a 1440 px y el panel lateral de
+`file://`, las rutas del sitio, la contraseña de la configuración (diálogo,
+error y desbloqueo), el modo edición del sitio (con la galería de bloques
+predefinidos), el editor de capas sobre páginas, la resiliencia sin CDN y la
+exportación del PDF editado. Además, una comprobación visual con Chrome
+headless (45 aserciones) verifica números de sección, fuentes, trama de los
+huecos, ausencia de desbordes de 390 a 1440 px y el panel lateral de
 edición.
