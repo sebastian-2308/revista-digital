@@ -6,3 +6,6 @@ Desktop.ini
 # Editores y dependencias (este proyecto no necesita npm)
 node_modules/
 *.log
+
+# Caché local de wrangler (Cloudflare)
+.wrangler/
