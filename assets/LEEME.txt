@@ -1,19 +1,30 @@
-REVISTA DIGITAL · FLIPBOOK  (assets/)
+BIBLIOTECA · REVISTAS DIGITALES  (assets/)
 ================================================================
 
-Coloca aquí los archivos de la revista:
+Aquí vive el contenido de la estantería:
 
-1) revista.pdf  (obligatorio)
-   Es el PDF que el visor convertirá automáticamente en páginas hojeables.
-   Ya incluimos uno de demostración de 10 páginas para probar el funcionamiento.
-   Para usar el tuyo, basta con reemplazarlo por otro archivo con el mismo nombre:
-   el número de páginas, la proporción y el tamaño se adaptan solos.
+1) revistas.json  (catálogo)
+   Lista las revistas que aparecen en la biblioteca: título, número,
+   categoría, fecha, nº de páginas, descripción, y las rutas del PDF
+   y de la portada. Para añadir una revista: copia su PDF y su portada
+   aquí y añade una entrada más al JSON.
 
-2) pagina.mp3  (opcional)
-   Sonido realista de paso de página. Si falta este archivo, la aplicación
-   genera automáticamente un sonido de papel equivalente con Web Audio.
-   Para usar uno propio, colócalo aquí con ese nombre (o cambia la ruta
-   en la constante CONFIG.rutaSonido de app.js).
+2) revista.pdf / revista-orbita.pdf / revista-taller.pdf
+   Las tres revistas de ejemplo, dibujadas píxel a píxel:
+   · Horizontes N.º 01 — Diseño y cultura (10 páginas)
+   · Órbita    N.º 07 — Ciencia y sociedad (6 páginas)
+   · Taller    N.º 12 — Oficios y materia (6 páginas)
+   Cada una tiene su portada en covers/ para la estantería.
+
+3) pagina.mp3  (opcional)
+   Sonido realista de paso de página. Puedes sustituirlo por el tuyo
+   con el mismo nombre (o cambiar la ruta en la constante
+   RUTA_SONIDO de app.js).
+
+Además, desde la propia aplicación puedes PUBLICAR cualquier PDF
+(botón «Publicar revista» o arrastrándolo a la ventana): se le genera
+portada automáticamente y se guarda en tu navegador (IndexedDB), sin
+tocar estos archivos.
 
 
 CÓMO EJECUTARLO
@@ -24,17 +35,19 @@ Opción A (recomendada): servidor local, desde la carpeta del proyecto
 
 Opción B: doble clic en index.html (protocolo file://)
     Funciona, pero el navegador bloquea la lectura automática de
-    assets/revista.pdf por seguridad. En ese caso el visor muestra un
-    aviso con dos alternativas: arrastrar el PDF a la ventana o
-    elegirlo con el botón "Elegir archivo PDF…".
+    assets/ por seguridad. En ese caso la estantería usa el catálogo
+    incluido en app.js y, al abrir una revista, aparece un panel con
+    la opción de elegir el PDF a mano.
 
 
 NOTAS TÉCNICAS
 ----------------------------------------------------------------
 · PDF.js (Mozilla) rasteriza cada página del PDF a una imagen.
-  El renderizado es progresivo y por prioridades: primero la página que
-  estás viendo y las siguientes, así nunca ves un hueco al hojear.
+  El renderizado es progresivo y por prioridades: primero la página
+  que estás viendo, así nunca ves un hueco al hojear.
 · StPageFlip (page-flip) se encarga de la animación 3D del pliegue,
   el arrastre con ratón y el deslizamiento con el dedo.
-· El título de la edición y la descripción del panel de información son
-  editables y se guardan en tu navegador (localStorage).
+· La descripción de cada revista es editable en el panel de
+  información y se guarda en tu navegador (localStorage), por revista.
+· Las publicaciones propias se guardan en IndexedDB; si el navegador
+  no la permite (algunos file://), duran solo la sesión.

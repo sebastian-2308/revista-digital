@@ -1,935 +1,1101 @@
-/* =====================================================================
- * REVISTA DIGITAL · FLIPBOOK
- * styles.css — Estética editorial premium, modo oscuro, Flexbox/Grid
- * ---------------------------------------------------------------------
- * 1.  Variables y reset
- * 2.  Utilidades (iconos, epígrafes, textos)
- * 3.  Estructura general y fondo
- * 4.  Barra superior
- * 5.  Botones y campos
- * 6.  Visor, libro y páginas
- * 7.  Capas de texto (edición en vivo)
- * 8.  Dock de controles, slider y miniaturas
- * 9.  Barra de herramientas de capas
- * 10. Overlays (carga y "no hay PDF")
- * 11. Panel lateral de información
- * 12. Avisos flotantes
- * 13. Responsive, accesibilidad y pantalla completa
- * ===================================================================== */
+/* ==========================================================================
+   BIBLIOTECA · REVISTAS DIGITALES
+   styles.css — tema editorial oscuro con acento dorado.
 
-/* ---------------------------------------------------------------------
- * 1. VARIABLES Y RESET
- * ------------------------------------------------------------------- */
+   Índice:
+     01. Variables globales
+     02. Reset y base
+     03. Utilidades (overlay, avisos, botones, iconos…)
+     04. Barras superiores (biblioteca y lector)
+     05. Vista biblioteca (cabecera, chips, estantería, fichas)
+     06. Visor y libro (páginas y pliegue 3D)
+     07. Controles flotantes (dock, progreso, miniaturas)
+     08. Panel lateral de información
+     09. Pantalla completa, animaciones y accesibilidad
+     10. Responsive fino
+   ========================================================================== */
+
+/* ========================== 01. VARIABLES ================================ */
 :root {
-  /* Paleta */
-  --tinta-0: #070910;        /* fondo profundo */
-  --tinta-1: #0c0f16;        /* fondo de la aplicación */
-  --sup-1: #111520;          /* superficies */
-  --sup-2: #171c29;
-  --sup-3: #1e2432;
-  --borde: rgba(255, 255, 255, .09);
-  --borde-fuerte: rgba(255, 255, 255, .16);
-  --texto-1: #eef1f6;
-  --texto-2: #9aa4b6;
-  --texto-3: #6c768b;
-  --acento: #e6b450;         /* dorado editorial */
-  --acento-suave: rgba(230, 180, 80, .16);
-  --frio: #7c8cff;           /* acento frío (edición) */
-  --frio-suave: rgba(124, 140, 255, .18);
-  --peligro: #ff6b6b;
-  --papel: #fbf8f3;          /* color del papel del libro */
-  --radio: 14px;
-  --radio-alto: 20px;
-  --sombra-alta: 0 24px 60px rgba(0, 0, 0, .55);
-  --sombra-media: 0 10px 30px rgba(0, 0, 0, .38);
-  --curva: cubic-bezier(.22, .8, .28, 1);
+  /* Paleta: tinta profunda con un único acento dorado */
+  --fondo: #0a0c10;
+  --superficie: #14171d;
+  --superficie-2: #1c2027;
+  --superficie-3: #242932;
+  --borde: #2c313b;
+  --borde-fuerte: #3a4150;
+
+  --texto: #e8e4da;
+  --texto-2: #a8a394;
+  --texto-3: #7b7668;
+
+  --acento: #e6b450;          /* dorado editorial */
+  --acento-suave: #f0cf8a;
+  --acento-tenue: rgba(230, 180, 80, 0.16);
+  --peligro: #e0685c;
+
+  --foco: #6f9bff;            /* anillo de foco (teclado) */
 
   /* Tipografías */
-  --fuente-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --fuente-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --fuente-display: "Fraunces", "Georgia", "Times New Roman", serif;
+  --fuente-texto: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* Formas y sombras */
+  --radio: 12px;
+  --radio-lg: 18px;
+  --sombra-libro: 0 18px 45px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --curva: cubic-bezier(0.22, 0.68, 0.32, 1);
+
+  /* Barras */
+  --alto-barra: 64px;
 }
 
-* { box-sizing: border-box; }
+/* ========================== 02. RESET Y BASE ============================= */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-html, body { height: 100%; }
+html,
+body {
+  height: 100%;
+}
 
 body {
-  margin: 0;
-  display: flex;               /* barra superior + visor */
-  flex-direction: column;
-  background: var(--tinta-1);
-  color: var(--texto-1);
-  font-family: var(--fuente-ui);
-  font-size: 15px;
+  font-family: var(--fuente-texto);
+  font-size: 16px;
   line-height: 1.5;
-  overflow: hidden;
+  color: var(--texto);
+  background:
+    radial-gradient(1100px 600px at 85% -10%, rgba(230, 180, 80, 0.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(111, 155, 255, 0.05), transparent 55%),
+    var(--fondo);
   -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-/* Aura decorativa de fondo (detrás de todo) */
-body::before {
+h1, h2, h3 {
+  font-family: var(--fuente-display);
+  font-weight: 600;
+  line-height: 1.12;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: 5px;
+  padding: 0.1em 0.4em;
+}
+
+kbd {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.82em;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde-fuerte);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 0.1em 0.45em;
+  color: var(--texto-2);
+}
+
+[hidden] { display: none !important; }
+
+/* Sombra bajo el libro que aísla el pliegue de la página */
+.zona-libro::after {
   content: "";
-  position: fixed;
-  inset: -30vh -10% auto;
-  height: 70vh;
-  background:
-    radial-gradient(48% 55% at 26% 20%, rgba(124, 140, 255, .22), transparent 70%),
-    radial-gradient(42% 50% at 78% 12%, rgba(230, 180, 80, .16), transparent 72%);
-  filter: blur(30px);
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -1px;
+  height: 6%;
+  background: radial-gradient(52% 100% at 50% 100%, rgba(0, 0, 0, 0.55), transparent 70%);
+  opacity: 0.75;
   pointer-events: none;
   z-index: 0;
 }
 
-h1, h2, h3, p, dl, dd, figure { margin: 0; }
+/* ========================== 03. UTILIDADES =============================== */
 
-code, kbd {
-  font-family: ui-monospace, Consolas, "Courier New", monospace;
-  font-size: .88em;
-  background: rgba(255, 255, 255, .08);
-  border: 1px solid var(--borde);
-  border-radius: 6px;
-  padding: 1px 6px;
-}
-
+/* --- Saltar al contenido (accesibilidad) --- */
 .salto-contenido {
-  position: absolute;
-  left: -9999px;
-  top: 10px;
-  z-index: 999;
+  position: fixed;
+  top: -100%;
+  left: 16px;
+  z-index: 200;
   background: var(--acento);
   color: #14161c;
+  padding: 10px 16px;
+  border-radius: 0 0 var(--radio) var(--radio);
   font-weight: 600;
-  padding: 10px 18px;
-  border-radius: 10px;
   text-decoration: none;
+  transition: top 0.2s;
 }
-.salto-contenido:focus { left: 10px; }
 
-/* ---------------------------------------------------------------------
- * 2. UTILIDADES
- * ------------------------------------------------------------------- */
+.salto-contenido:focus { top: 0; }
+
+/* --- Iconos SVG (línea) --- */
 .icono {
   width: 20px;
   height: 20px;
-  flex: none;
+  flex: 0 0 auto;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.7;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.marca__logo .icono { fill: currentColor; stroke: none; }
 
-.epigrafe {
-  font-size: .68rem;
-  font-weight: 600;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--texto-3);
-}
-
-.nota {
-  font-size: .78rem;
-  line-height: 1.6;
-  color: var(--texto-3);
-}
-
-/* ---------------------------------------------------------------------
- * 3. ESTRUCTURA GENERAL
- * ------------------------------------------------------------------- */
-.visor {
-  position: relative;          /* permite montar dock, overlays y paneles encima */
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  z-index: 1;
-}
-
-.zona-libro {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(10px, 2vw, 28px);
-  padding-bottom: clamp(84px, 12vh, 120px);   /* deja sitio al dock */
-  overflow: hidden;
-}
-
-.contenedor-libro {
-  width: 600px;                /* lo recalcula app.js */
-  max-width: 100%;
-}
-
-/* ---------------------------------------------------------------------
- * 4. BARRA SUPERIOR
- * ------------------------------------------------------------------- */
-.barra-superior {
-  position: relative;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: clamp(10px, 2vw, 22px);
-  padding: 10px clamp(12px, 3vw, 24px);
-  background: linear-gradient(180deg, rgba(17, 21, 32, .92), rgba(12, 15, 22, .78));
-  border-bottom: 1px solid var(--borde);
-  backdrop-filter: blur(14px) saturate(140%);
-}
-
-.marca {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  white-space: nowrap;
-}
-.marca__logo {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  color: #14161c;
-  background: linear-gradient(140deg, var(--acento), #c98f2e);
-  box-shadow: 0 6px 18px rgba(230, 180, 80, .28);
-}
-.marca__texto {
-  font-family: var(--fuente-display);
-  font-size: 1.12rem;
-  font-weight: 600;
-  letter-spacing: .2px;
-}
-.marca__texto em {
-  font-style: normal;
-  color: var(--acento);
-}
-
-/* Bloque de la edición: cajetín + título editables */
-.edicion {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-}
-.edicion__kicker,
-.edicion__titulo {
-  padding: 2px 10px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: border-color .2s ease, background .2s ease;
-}
-.edicion__kicker {
-  font-size: .66rem;
-  font-weight: 600;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  color: var(--acento);
-  cursor: text;
-}
-.edicion__titulo {
-  font-family: var(--fuente-display);
-  font-size: clamp(1.02rem, 2.6vw, 1.35rem);
-  font-weight: 600;
-  letter-spacing: .3px;
-  line-height: 1.2;
-  cursor: text;
-}
-.edicion__kicker:hover,
-.edicion__titulo:hover { border-color: var(--borde); }
-.edicion__kicker:focus,
-.edicion__titulo:focus {
-  outline: none;
-  background: var(--sup-2);
-  border-color: var(--acento);
-  white-space: normal;
-}
-
-.acciones {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
-.acciones__sep {
-  width: 1px;
-  height: 22px;
-  background: var(--borde);
-  margin: 0 2px;
-}
-
-/* ---------------------------------------------------------------------
- * 5. BOTONES Y CAMPOS
- * ------------------------------------------------------------------- */
+/* --- Botones --- */
 .boton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 38px;
-  padding: 8px 14px;
-  font: inherit;
-  font-size: .86rem;
-  font-weight: 600;
-  color: var(--texto-1);
-  background: var(--sup-2);
+  min-height: 40px;
+  padding: 0 14px;
+  font: 600 0.85rem var(--fuente-texto);
+  color: var(--texto);
+  background: var(--superficie-2);
   border: 1px solid var(--borde);
-  border-radius: 11px;
+  border-radius: var(--radio);
   cursor: pointer;
-  transition: background .18s ease, border-color .18s ease, transform .12s ease,
-              color .18s ease, box-shadow .2s ease, opacity .2s ease;
-  user-select: none;
-}
-.boton:hover:not(:disabled) { background: var(--sup-3); border-color: var(--borde-fuerte); }
-.boton:active:not(:disabled) { transform: translateY(1px) scale(.985); }
-.boton:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
-.boton:disabled { opacity: .35; cursor: not-allowed; }
-
-.boton--icono { min-width: 38px; padding: 8px; }
-.boton--mini { min-height: 30px; padding: 4px 9px; font-size: .78rem; border-radius: 9px; }
-.boton--mini .icono { width: 16px; height: 16px; }
-
-.boton--acento {
-  background: linear-gradient(140deg, var(--acento), #cf9433);
-  border-color: transparent;
-  color: #14161c;
-  box-shadow: 0 8px 22px rgba(230, 180, 80, .22);
-}
-.boton--acento:hover:not(:disabled) { background: linear-gradient(140deg, #f0c269, #d99e3c); }
-
-.boton--principal {
-  background: linear-gradient(140deg, var(--frio), #5b6ce0);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 8px 22px rgba(124, 140, 255, .25);
-}
-.boton--principal:hover { background: linear-gradient(140deg, #8e9cff, #6a7ae8); }
-
-.boton--suave { background: transparent; color: var(--texto-2); font-weight: 500; }
-.boton--suave:hover { color: var(--texto-1); background: var(--sup-2); }
-.boton--peligro { color: var(--peligro); }
-.boton--peligro:hover { background: rgba(255, 107, 107, .12); border-color: rgba(255, 107, 107, .4); }
-
-/* Botón activo (modo edición, sonido, etc.) */
-.boton[aria-pressed="true"] {
-  background: var(--frio-suave);
-  border-color: rgba(124, 140, 255, .5);
-  color: #cfd6ff;
-}
-.boton--acento[aria-pressed="true"] {
-  background: linear-gradient(140deg, var(--acento), #cf9433);
-  color: #14161c;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
 }
 
-/* Estado sin ondas del sonido */
-.boton[aria-pressed="false"] .sonido__onda { display: none; }
+.boton:hover:not(:disabled) {
+  background: var(--superficie-3);
+  border-color: var(--borde-fuerte);
+}
 
-.campo--select,
-.campo {
-  font: inherit;
-  font-size: .8rem;
-  color: var(--texto-1);
-  background: var(--sup-3);
-  border: 1px solid var(--borde);
-  border-radius: 9px;
-  padding: 6px 8px;
-  min-height: 30px;
+.boton:active:not(:disabled) { transform: translateY(1px); }
+
+.boton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
-.campo--select { cursor: pointer; }
-.campo--select:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
-.campo--grupo {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 6px;
-}
-.campo__valor {
-  min-width: 46px;
-  text-align: center;
-  font-size: .76rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--texto-2);
-}
-.campo--color {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px;
-  cursor: pointer;
-}
-.campo--color input[type="color"] {
-  width: 30px;
-  height: 24px;
+
+.boton--icono {
+  width: 40px;
   padding: 0;
-  border: none;
-  border-radius: 6px;
-  background: none;
-  cursor: pointer;
 }
 
-/* ---------------------------------------------------------------------
- * 6. VISOR, LIBRO Y PÁGINAS
- * ------------------------------------------------------------------- */
+.boton--suave { background: transparent; }
 
-/* Papel del libro */
-.pagina {
-  position: relative;
-  background: var(--papel);
-  overflow: hidden;
-  box-shadow: inset 0 0 60px rgba(90, 70, 40, .07);
+.boton--principal,
+.boton--acento {
+  background: var(--acento);
+  border-color: transparent;
+  color: #14161c;
 }
 
-.pagina__imagen {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: var(--papel);
-  pointer-events: none;         /* los gestos los gestiona StPageFlip */
-  user-select: none;
+.boton--principal:hover:not(:disabled),
+.boton--acento:hover:not(:disabled) {
+  background: var(--acento-suave);
+  border-color: transparent;
 }
 
-.pagina__espera {
-  position: absolute;
+/* Botones del dock: semitransparentes sobre el libro */
+.dock .boton--icono {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: transparent;
+}
+
+.dock .boton--icono:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Botón de sonido silenciado: ondas tachadas */
+#btnSonido[aria-pressed="false"] .sonido__onda { display: none; }
+
+#btnSonido[aria-pressed="false"] { color: var(--peligro); }
+
+/* --- Campos de texto --- */
+input[type="search"],
+input[type="text"] {
+  font: 500 0.88rem var(--fuente-texto);
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type="search"]::placeholder,
+input[type="text"]::placeholder { color: var(--texto-3); }
+
+/* --- Diálogo de carga (overlay) --- */
+.overlay {
+  position: fixed;
   inset: 0;
+  z-index: 120;
   display: grid;
   place-items: center;
-  align-content: center;
-  gap: 12px;
-  background:
-    linear-gradient(100deg, #f3efe8 30%, #faf7f1 50%, #f3efe8 70%);  /* shimmer */
-  background-size: 220% 100%;
-  animation: resplandor 1.4s ease-in-out infinite;
-  color: #8b8478;
-  font-size: .76rem;
-  letter-spacing: .06em;
+  background: rgba(6, 8, 12, 0.82);
+  backdrop-filter: blur(8px);
+  padding: 24px;
 }
-.pagina__spinner {
-  width: 26px;
-  height: 26px;
-  border: 3px solid rgba(0, 0, 0, .12);
-  border-top-color: var(--acento);
-  border-radius: 50%;
-  animation: girar 1s linear infinite;
-}
-@keyframes resplandor { from { background-position: 120% 0; } to { background-position: -20% 0; } }
-@keyframes girar { to { transform: rotate(360deg); } }
 
-.pagina__error {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 14px;
+.overlay.oculto { display: none; }
+
+.overlay__caja {
   text-align: center;
-  color: #8b8478;
-  font-size: .82rem;
-  background: #f3efe8;
+  max-width: 420px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  padding: 34px 30px 28px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
 }
 
-/* Modo edición: las páginas se pueden tocar */
-.modo-edicion .pagina { cursor: text; }
-.modo-edicion .pagina:hover { box-shadow: inset 0 0 0 2px rgba(230, 180, 80, .55); }
-.modo-edicion .pagina__imagen { pointer-events: none; }
+.overlay__caja--ancha { max-width: 520px; }
 
-/* Zona-arrastre de archivos */
+.overlay__caja--ancha h2 { font-size: 1.5rem; margin-bottom: 10px; }
+
+.overlay__caja--ancha p {
+  font-size: 0.92rem;
+  color: var(--texto-2);
+  margin-bottom: 16px;
+}
+
+.overlay__caja--ancha .boton { width: 100%; margin-bottom: 10px; }
+
+.overlay__texto {
+  font-family: var(--fuente-display);
+  font-size: 1.18rem;
+  margin-top: 18px;
+}
+
+.overlay__detalle {
+  font-size: 0.85rem;
+  color: var(--texto-2);
+  margin-top: 6px;
+}
+
+/* Círculo giratorio */
+.girador {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 3px solid rgba(230, 180, 80, 0.25);
+  border-top-color: var(--acento);
+  animation: girar 0.9s linear infinite;
+}
+
+/* Aviso de errores/sugerencias */
+.aviso {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translate(-50%, 20px);
+  z-index: 130;
+  max-width: min(640px, calc(100vw - 32px));
+  background: var(--superficie-2);
+  border: 1px solid var(--borde-fuerte);
+  border-left: 4px solid var(--acento);
+  border-radius: var(--radio);
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  color: var(--texto);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s var(--curva);
+}
+
+.aviso.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.aviso.error { border-left-color: var(--peligro); }
+
+/* Zona de arrastre de archivos */
 .zona-arrastre {
-  position: absolute;
-  inset: 14px;
+  position: fixed;
+  inset: 0;
+  z-index: 140;
   display: none;
   place-items: center;
-  border: 2px dashed var(--acento);
-  border-radius: var(--radio-alto);
-  background: rgba(7, 9, 16, .8);
-  color: var(--texto-1);
-  font-family: var(--fuente-display);
-  font-size: 1.2rem;
-  z-index: 6;
+  background: rgba(8, 10, 14, 0.88);
+  backdrop-filter: blur(6px);
+  border: 3px dashed var(--acento);
+  font: 600 1.25rem var(--fuente-display);
+  letter-spacing: 0.01em;
   pointer-events: none;
-  backdrop-filter: blur(4px);
+  text-align: center;
+  padding: 24px;
 }
-body.arrastrando .zona-arrastre { display: grid; }
 
-/* Línea de progreso fina superior */
+body.arastrando .zona-arrastre { display: grid; }
+
+.zona-arrastre strong { color: var(--acento); }
+
+/* Epígrafes (kicker) */
+.epigrafe {
+  font: 600 0.7rem var(--fuente-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--acento);
+}
+
+/* Notas al pie de diálogos */
+.nota {
+  font-size: 0.82rem;
+  color: var(--texto-3);
+  line-height: 1.55;
+}
+
+/* Barra de progreso durante la carga */
 .linea-progreso {
   position: absolute;
-  top: 0; left: 0; right: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   height: 3px;
-  background: rgba(255, 255, 255, .06);
-  z-index: 7;
-  overflow: hidden;
-}
-.linea-progreso span {
-  display: block;
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(90deg, var(--frio), var(--acento));
-  transition: width .3s ease;
+  background: rgba(230, 180, 80, 0.12);
+  z-index: 5;
 }
 
-/* Chip de modo edición */
-.chip-modo {
+.linea-progreso span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--acento);
+  transition: width 0.2s ease;
+}
+
+/* ========================== 04. BARRAS SUPERIORES ======================== */
+.barra {
+  flex: 0 0 auto;
+  height: var(--alto-barra);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 clamp(14px, 3vw, 26px);
+  background: rgba(12, 14, 19, 0.85);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--borde);
+  z-index: 60;
+}
+
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.marca__logo {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--acento-tenue);
+  color: var(--acento);
+}
+
+.marca__texto {
+  font: 600 0.95rem var(--fuente-texto);
+  letter-spacing: 0.02em;
+}
+
+.marca__texto em {
+  font-style: normal;
+  color: var(--texto-3);
+  font-weight: 400;
+  margin-left: 5px;
+}
+
+/* Buscador (solo barra de biblioteca) */
+.buscador {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 420px;
+  max-width: 460px;
+  margin-inline: auto;
+  color: var(--texto-3);
+}
+
+.buscador .icono {
   position: absolute;
-  top: 14px;
-  left: 14px;
-  z-index: 6;
+  left: 12px;
+  width: 17px;
+  height: 17px;
+  pointer-events: none;
+}
+
+.buscador input { width: 100%; padding-left: 38px; }
+
+.buscador input:focus {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-tenue);
+}
+
+/* Título de la edición (barra del lector) */
+.edicion {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.edicion__kicker {
+  display: block;
+  font: 600 0.62rem var(--fuente-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  color: var(--acento);
+}
+
+.edicion__titulo {
+  font-size: 1.25rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acciones {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  font-size: .78rem;
-  color: #14161c;
-  background: linear-gradient(140deg, var(--acento), #d99e3c);
+  flex: 0 0 auto;
+}
+
+/* ========================== 05. VISTA BIBLIOTECA ========================= */
+.biblioteca {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: clamp(26px, 4.5vh, 54px) clamp(18px, 4vw, 56px) 70px;
+  position: relative;
+  z-index: 1;
+}
+
+.biblioteca__cabecera {
+  max-width: 1220px;
+  margin: 0 auto 30px;
+  animation: aparecer 0.5s var(--curva) backwards;
+}
+
+.biblioteca__cabecera h2 {
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  margin: 8px 0 10px;
+}
+
+.biblioteca__lema {
+  max-width: 560px;
+  color: var(--texto-2);
+  font-size: 0.95rem;
+}
+
+/* Chips de categorías */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.chip {
+  font: 600 0.76rem var(--fuente-texto);
+  letter-spacing: 0.04em;
+  padding: 7px 14px;
   border-radius: 999px;
-  box-shadow: var(--sombra-media);
-  animation: aparecer .25s var(--curva);
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto-2);
+  cursor: pointer;
+  transition: all 0.15s;
 }
-.chip-modo .icono { width: 16px; height: 16px; }
 
-/* ---------------------------------------------------------------------
- * 7. CAPAS DE TEXTO (edición en vivo)
- * ------------------------------------------------------------------- */
-.capa {
-  position: absolute;
-  z-index: 3;
-  min-width: 3%;
-  padding: .3em .45em;
-  border: 1px dashed transparent;
-  border-radius: 4px;
-  transition: border-color .15s ease, background .15s ease;
+.chip:hover { border-color: var(--borde-fuerte); color: var(--texto); }
+
+.chip[aria-selected="true"] {
+  background: var(--acento);
+  border-color: transparent;
+  color: #14161c;
 }
-.capa__texto {
+
+/* --- Estantería (grid de fichas) --- */
+.estanteria {
+  max-width: 1220px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: clamp(20px, 3vw, 36px) clamp(18px, 2.5vw, 30px);
+  align-items: start;
+}
+
+/* Ficha individual */
+.ficha {
   display: block;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  line-height: 1.25;
-  outline: none;
-  cursor: inherit;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  animation: aparecer 0.55s var(--curva) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
 }
 
-/* En modo lectura las capas no interceptan los gestos del libro */
-:not(.modo-edicion) .capa { pointer-events: none; }
-
-/* En modo edición: comportamiento de "caja de texto" */
-.modo-edicion .capa { cursor: move; }
-.modo-edicion .capa:hover { border-color: rgba(124, 140, 255, .6); background: rgba(124, 140, 255, .06); }
-.modo-edicion .capa.seleccionada {
-  border-color: var(--frio);
-  border-style: solid;
-  background: rgba(124, 140, 255, .08);
-  box-shadow: 0 0 0 3px rgba(124, 140, 255, .18);
+/* Portada tipo libro con lomo */
+.ficha__portada-wrap {
+  position: relative;
+  aspect-ratio: 480 / 672;
+  border-radius: 4px 10px 10px 4px;
+  overflow: hidden;
+  background: var(--superficie-2);
+  box-shadow: var(--sombra-libro), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: transform 0.3s var(--curva), box-shadow 0.3s;
 }
-.modo-edicion .capa.seleccionada .capa__texto { cursor: text; }
-.capa__etiqueta {
+
+.ficha__portada {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s var(--curva);
+}
+
+/* Lomo del libro */
+.ficha__portada-wrap::before {
+  content: "";
   position: absolute;
-  top: -1.55em;
   left: 0;
-  font-family: var(--fuente-ui);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: #fff;
-  background: var(--frio);
-  padding: 1px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  z-index: 2;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.5), rgba(255, 255, 255, 0.07) 55%, transparent);
   pointer-events: none;
 }
-:not(.modo-edicion) .capa__etiqueta { display: none; }
 
-/* ---------------------------------------------------------------------
- * 8. DOCK DE CONTROLES, SLIDER Y MINIATURAS
- * ------------------------------------------------------------------- */
+.ficha:hover .ficha__portada-wrap,
+.ficha:focus-visible .ficha__portada-wrap {
+  transform: translateY(-8px) rotate(-0.4deg);
+  box-shadow: 0 30px 62px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(230, 180, 80, 0.35);
+}
+
+.ficha:hover .ficha__portada { transform: scale(1.045); }
+
+/* Etiqueta de categoría sobre la portada */
+.ficha__cat {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  font: 600 0.62rem var(--fuente-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--acento);
+  background: rgba(10, 12, 18, 0.78);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(230, 180, 80, 0.3);
+  border-radius: 999px;
+  padding: 4px 9px;
+}
+
+/* Pie de ficha */
+.ficha__titulo {
+  font-family: var(--fuente-display);
+  font-size: 1.12rem;
+  font-weight: 600;
+  margin-top: 14px;
+}
+
+.ficha__meta {
+  font-size: 0.76rem;
+  color: var(--texto-3);
+  margin-top: 3px;
+}
+
+/* Publicaciones propias: sello "Tu publicación" + quitar */
+.ficha--propia .ficha__portada-wrap {
+  box-shadow: var(--sombra-libro), 0 0 0 2px rgba(111, 155, 255, 0.4);
+}
+
+.ficha__sello {
+  position: absolute;
+  left: 24px;
+  bottom: 10px;
+  z-index: 2;
+  font: 600 0.6rem var(--fuente-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #cfe0ff;
+  background: rgba(20, 30, 56, 0.85);
+  border: 1px solid rgba(111, 155, 255, 0.45);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.ficha__quitar {
+  position: absolute;
+  top: 8px;
+  left: 24px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(224, 104, 92, 0.5);
+  background: rgba(16, 10, 10, 0.82);
+  color: var(--peligro);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.ficha:hover .ficha__quitar,
+.ficha__quitar:focus-visible { opacity: 1; }
+
+.ficha__quitar:hover { background: rgba(60, 20, 16, 0.9); }
+
+.ficha__quitar .icono { width: 15px; height: 15px; }
+
+/* Ficha "publicar": recuadro punteado */
+.ficha--nueva .ficha__portada-wrap {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 2px dashed var(--borde-fuerte);
+  border-radius: 4px 10px 10px 4px;
+  box-shadow: none;
+  color: var(--texto-3);
+  text-align: center;
+  padding: 18px;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.ficha--nueva:hover .ficha__portada-wrap {
+  border-color: var(--acento);
+  color: var(--acento);
+  background: var(--acento-tenue);
+  transform: translateY(-6px);
+}
+
+.ficha--nueva .icono { width: 30px; height: 30px; }
+
+.ficha--nueva .ficha__portada-texto {
+  font: 600 0.8rem var(--fuente-texto);
+  line-height: 1.4;
+}
+
+/* Estado vacío (sin resultados de búsqueda) */
+.biblioteca__vacio {
+  max-width: 1220px;
+  margin: 60px auto 0;
+  text-align: center;
+}
+
+.biblioteca__vacio-texto {
+  color: var(--texto-2);
+  margin-bottom: 18px;
+}
+
+/* ========================== 06. VISOR Y LIBRO ============================ */
+.visor {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Zona centrada donde StPageFlip monta el libro */
+.zona-libro {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 26px 26px 0;
+  overflow: hidden;
+}
+
+.contenedor-libro {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--sombra-libro);
+}
+
+/* Páginas del flipbook */
+.pagina {
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.pagina img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+/* ========================== 07. CONTROLES FLOTANTES ====================== */
 .dock {
   position: absolute;
   left: 50%;
-  bottom: 18px;
+  bottom: 20px;
   transform: translateX(-50%);
-  z-index: 6;
+  z-index: 50;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 12px;
-  background: rgba(17, 21, 32, .82);
+  background: rgba(16, 19, 25, 0.82);
+  backdrop-filter: blur(14px);
   border: 1px solid var(--borde);
   border-radius: 999px;
-  box-shadow: var(--sombra-alta);
-  backdrop-filter: blur(16px) saturate(150%);
-  animation: aparecer .35s var(--curva);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5);
+}
+
+.dock__sep {
+  width: 1px;
+  height: 24px;
+  background: var(--borde);
+  margin: 0 2px;
 }
 
 .dock__paginas {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
+
 .indicador {
-  min-width: 104px;
+  font: 600 0.78rem var(--fuente-texto);
+  color: var(--texto-2);
+  min-width: 64px;
   text-align: center;
-  font-size: .82rem;
-  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--texto-1);
-  letter-spacing: .02em;
 }
-.dock__sep { width: 1px; height: 22px; background: var(--borde); }
 
 /* Deslizador de páginas */
 .slider {
   -webkit-appearance: none;
   appearance: none;
-  width: clamp(90px, 14vw, 190px);
+  width: 150px;
   height: 4px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--acento) var(--progreso, 0%), rgba(255, 255, 255, .12) var(--progreso, 0%));
+  background: linear-gradient(to right, var(--acento) var(--relleno, 0%), var(--superficie-3) var(--relleno, 0%));
+  outline: none;
   cursor: pointer;
 }
+
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
   width: 14px;
   height: 14px;
   border-radius: 50%;
   background: var(--acento);
-  border: 2px solid #14161c;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .5);
-  transition: transform .15s ease;
+  border: 2px solid var(--fondo);
+  cursor: grab;
+  transition: transform 0.12s;
 }
-.slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+.slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
 .slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border: 2px solid #14161c;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--acento);
+  border: 2px solid var(--fondo);
+  cursor: grab;
 }
-.slider:disabled { opacity: .4; cursor: not-allowed; }
+
+.slider:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Riel de miniaturas */
 .rail {
   position: absolute;
-  left: 50%;
-  bottom: 84px;
-  transform: translateX(-50%);
-  z-index: 6;
-  max-width: min(920px, calc(100% - 28px));
-  padding: 10px;
-  background: rgba(17, 21, 32, .88);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-alto);
-  box-shadow: var(--sombra-alta);
-  backdrop-filter: blur(16px) saturate(150%);
-  animation: aparecer .25s var(--curva);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: rgba(12, 14, 19, 0.94);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--borde);
+  padding: 12px 14px 14px;
+  transform: translateY(100%);
+  transition: transform 0.28s var(--curva);
 }
+
+.rail.visible { transform: translateY(0); }
+
 .rail__lista {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 6px;
   scrollbar-width: thin;
-  scrollbar-color: var(--sup-3) transparent;
+  scrollbar-color: var(--borde-fuerte) transparent;
 }
+
 .rail__lista::-webkit-scrollbar { height: 6px; }
-.rail__lista::-webkit-scrollbar-thumb { background: var(--sup-3); border-radius: 999px; }
+
+.rail__lista::-webkit-scrollbar-thumb {
+  background: var(--borde-fuerte);
+  border-radius: 999px;
+}
 
 .miniatura {
-  position: relative;
-  flex: none;
-  width: 58px;
-  padding: 0;
-  border: 2px solid transparent;
-  border-radius: 9px;
-  overflow: hidden;
-  background: var(--papel);
-  cursor: pointer;
-  opacity: .62;
-  transition: opacity .18s ease, border-color .18s ease, transform .18s ease;
-}
-.miniatura:hover { opacity: 1; transform: translateY(-2px); }
-.miniatura:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
-.miniatura.activa { opacity: 1; border-color: var(--acento); }
-.miniatura img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.miniatura__num {
-  position: absolute;
-  right: 3px;
-  bottom: 3px;
-  min-width: 16px;
-  padding: 0 4px;
-  font-size: 9px;
-  font-weight: 700;
-  text-align: center;
-  color: #fff;
-  background: rgba(10, 12, 18, .78);
-  border-radius: 5px;
-}
-.miniatura__espera {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 9px;
-  color: #9a9386;
-  background: #efeae1;
-}
-
-/* ---------------------------------------------------------------------
- * 9. BARRA DE HERRAMIENTAS DE CAPAS
- * ------------------------------------------------------------------- */
-.barra-capas {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 7;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-  max-width: calc(100% - 28px);
-  padding: 7px 10px;
-  background: rgba(17, 21, 32, .9);
-  border: 1px solid rgba(124, 140, 255, .35);
-  border-radius: 999px;
-  box-shadow: var(--sombra-alta);
-  backdrop-filter: blur(16px) saturate(150%);
-  animation: aparecer .2s var(--curva);
-}
-
-/* ---------------------------------------------------------------------
- * 10. OVERLAYS
- * ------------------------------------------------------------------- */
-.overlay {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(7, 9, 16, .78);
-  backdrop-filter: blur(10px);
-  z-index: 8;
-  transition: opacity .3s ease, visibility .3s;
-}
-.overlay.oculto { opacity: 0; visibility: hidden; pointer-events: none; }
-
-.overlay__caja {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  max-width: 430px;
-  padding: 30px 34px;
-  text-align: center;
-  background: linear-gradient(180deg, var(--sup-2), var(--sup-1));
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-alto);
-  box-shadow: var(--sombra-alta);
-  animation: aparecer .3s var(--curva);
-}
-.overlay__caja--ancha { max-width: 540px; text-align: left; align-items: stretch; }
-.overlay__caja--ancha h2 {
-  font-family: var(--fuente-display);
-  font-size: 1.15rem;
-  font-weight: 600;
-  text-align: center;
-}
-.overlay__caja--ancha .boton { align-self: center; }
-.overlay__texto { font-size: .95rem; font-weight: 500; }
-.overlay__detalle { font-size: .78rem; color: var(--texto-3); }
-
-@keyframes aparecer {
-  from { opacity: 0; transform: translateY(10px) scale(.985); }
-  to   { opacity: 1; transform: none; }
+  gap: 5px;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--texto-3);
+  font: 600 0.65rem var(--fuente-texto);
 }
 
-.girador {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, .12);
-  border-top-color: var(--acento);
-  animation: girar 1s linear infinite;
+.miniatura img {
+  width: 56px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
-/* ---------------------------------------------------------------------
- * 11. PANEL LATERAL DE INFORMACIÓN
- * ------------------------------------------------------------------- */
+.miniatura:hover img { transform: translateY(-3px); }
+
+.miniatura[aria-selected="true"] { color: var(--acento); }
+
+.miniatura[aria-selected="true"] img {
+  box-shadow: 0 0 0 2px var(--acento), 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* ========================== 08. PANEL LATERAL ============================ */
 .fondo-panel {
   position: fixed;
   inset: 0;
-  background: rgba(4, 6, 12, .6);
+  z-index: 90;
+  background: rgba(5, 7, 10, 0.55);
   backdrop-filter: blur(3px);
-  z-index: 9;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .28s ease;
 }
-.fondo-panel.visible { opacity: 1; pointer-events: auto; }
 
 .panel-info {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
+  z-index: 100;
   width: min(400px, 92vw);
+  background: var(--superficie);
+  border-left: 1px solid var(--borde);
+  box-shadow: -24px 0 70px rgba(0, 0, 0, 0.5);
+  transform: translateX(102%);
+  transition: transform 0.32s var(--curva);
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, var(--sup-2), var(--sup-1));
-  border-left: 1px solid var(--borde);
-  box-shadow: var(--sombra-alta);
-  transform: translateX(102%);
-  transition: transform .34s var(--curva);
-  z-index: 10;
 }
+
 .panel-info.abierto { transform: translateX(0); }
 
 .panel-info__cabecera {
+  flex: 0 0 auto;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 18px 18px 14px;
+  gap: 12px;
+  padding: 20px 22px 16px;
   border-bottom: 1px solid var(--borde);
 }
-.panel-info__cabecera h2 {
-  font-family: var(--fuente-display);
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-top: 2px;
-}
+
+.panel-info__cabecera h2 { font-size: 1.4rem; margin-top: 3px; }
 
 .panel-info__cuerpo {
-  padding: 6px 18px 20px;
+  flex: 1 1 auto;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
+  padding: 22px;
+  display: grid;
+  gap: 28px;
+  align-content: start;
 }
-.panel-info__cuerpo section {
-  padding: 16px 0;
-  border-bottom: 1px solid var(--borde);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.panel-info__cuerpo section:last-child { border-bottom: none; }
+
 .panel-info__cuerpo h3 {
-  font-size: .7rem;
-  font-weight: 600;
-  letter-spacing: .16em;
+  font-size: 0.72rem;
+  font-family: var(--fuente-texto);
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.18em;
   color: var(--texto-3);
+  margin-bottom: 10px;
 }
-.fila-botones { display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* Texto editable de la descripción */
 .texto-editable {
-  min-height: 130px;
-  padding: 12px 14px;
-  white-space: pre-wrap;
-  line-height: 1.65;
-  font-size: .9rem;
-  color: var(--texto-1);
-  background: var(--sup-1);
+  min-height: 140px;
+  padding: 14px;
+  background: var(--superficie-2);
   border: 1px solid var(--borde);
-  border-radius: 12px;
-  transition: border-color .2s ease, box-shadow .2s ease;
-  cursor: text;
-}
-.texto-editable:hover { border-color: var(--borde-fuerte); }
-.texto-editable:focus {
+  border-radius: var(--radio);
+  font: 400 0.92rem var(--fuente-texto);
+  line-height: 1.65;
+  color: var(--texto);
+  white-space: pre-wrap;
   outline: none;
-  border-color: var(--acento);
-  box-shadow: 0 0 0 3px var(--acento-suave);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+.texto-editable:focus {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px var(--acento-tenue);
+}
+
+.texto-editable b { font-weight: 700; }
+
+.fila-botones { margin-top: 10px; }
+
+/* Lista de datos (dl) */
 .datos {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 7px 14px;
-  font-size: .85rem;
-  padding: 12px 14px;
-  background: var(--sup-1);
-  border: 1px solid var(--borde);
-  border-radius: 12px;
+  gap: 8px 16px;
+  font-size: 0.88rem;
 }
+
 .datos dt { color: var(--texto-3); }
-.datos dd { margin: 0; text-align: right; word-break: break-all; font-weight: 500; }
 
-/* ---------------------------------------------------------------------
- * 12. AVISOS FLOTANTES
- * ------------------------------------------------------------------- */
-.aviso {
-  position: fixed;
-  left: 50%;
-  bottom: 92px;
-  transform: translate(-50%, 14px);
-  max-width: min(560px, 92vw);
-  padding: 12px 18px;
-  font-size: .86rem;
-  line-height: 1.5;
-  background: rgba(23, 28, 41, .95);
-  border: 1px solid var(--borde);
-  border-left: 4px solid var(--peligro);
-  border-radius: 12px;
-  box-shadow: var(--sombra-alta);
-  backdrop-filter: blur(10px);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity .25s ease, transform .25s ease, visibility .25s;
-  z-index: 20;
-}
-.aviso.visible { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
-.aviso.informativo { border-left-color: var(--acento); }
-
-/* ---------------------------------------------------------------------
- * 13. RESPONSIVE, ACCESIBILIDAD Y PANTALLA COMPLETA
- * ------------------------------------------------------------------- */
-@media (max-width: 860px) {
-  .acciones .boton__texto { display: none; }     /* solo iconos */
-  .acciones .boton { padding: 8px 10px; min-width: 38px; }
+.datos dd {
+  color: var(--texto);
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
-@media (max-width: 680px) {
+/* ========================== 09. PANTALLA COMPLETA ======================== */
+/* Aprovechamos el gesto "safe area" de móviles en pantalla completa */
+body:fullscreen .dock {
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+body:fullscreen .barra--lector {
+  opacity: 0.35;
+  transition: opacity 0.3s;
+}
+
+body:fullscreen .barra--lector:hover,
+body:fullscreen .barra--lector:focus-within { opacity: 1; }
+
+/* Ocultar ratón en pantalla completa tras 2,5 s de inactividad */
+body.pantalla-completa-oculta,
+body.pantalla-completa-oculta * { cursor: none !important; }
+
+/* Animación de entrada de fichas */
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+/* ========================== 10. RESPONSIVE =============================== */
+
+/* Pantallas medianas */
+@media (max-width: 900px) {
+  .estanteria { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .slider { width: 110px; }
+  .boton__texto { display: none; }         /* en barra: solo iconos */
+  .barra .boton { width: 40px; padding: 0; }
+}
+
+/* Móviles */
+@media (max-width: 560px) {
+  :root { --alto-barra: 56px; }
+
+  .barra { gap: 10px; }
+
   .marca__texto { display: none; }
-  .barra-superior { gap: 8px; padding: 8px 10px; }
-  .edicion { align-items: flex-start; }
-  .edicion__kicker { font-size: .6rem; letter-spacing: .14em; }
-  .indicador { min-width: 84px; font-size: .76rem; }
-  .slider { width: 74px; }
-  .dock { gap: 6px; padding: 7px 9px; bottom: 12px; }
-  .rail { bottom: 74px; }
-  .aviso { bottom: 86px; }
-  .chip-modo { font-size: .7rem; padding: 6px 10px; max-width: calc(100% - 28px); }
-  .barra-capas { gap: 4px; padding: 6px 8px; }
+
+  .buscador { flex: 1 1 auto; }
+
+  .edicion__titulo { font-size: 1.05rem; }
+
+  .estanteria { grid-template-columns: repeat(2, 1fr); gap: 20px 16px; }
+
+  .ficha__titulo { font-size: 0.98rem; }
+
+  .zona-libro { padding: 10px 10px 0; }
+
+  .dock {
+    bottom: 12px;
+    gap: 5px;
+    padding: 6px 9px;
+  }
+
+  .indicador { min-width: 52px; font-size: 0.7rem; }
+
+  .slider { width: 78px; }
+
+  .dock__sep { display: none; }
 }
 
-@media (max-width: 400px) {
-  .dock__sep, #btnRail { display: none; }        /* dock más compacto */
+/* Muy angostos */
+@media (max-width: 360px) {
+  .estanteria { grid-template-columns: 1fr; }
+  .slider { display: none; }
 }
 
-/* Respeta a quien prefiera menos movimiento */
+/* Sin movimiento: quitamos transiciones y animaciones */
 @media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    transition-duration: 0.001s !important;
   }
 }
 
-/* Contraste reforzado si el sistema lo pide */
-@media (prefers-contrast: more) {
-  :root { --borde: rgba(255, 255, 255, .28); --texto-2: #c3ccdb; --texto-3: #a6b0c2; }
+/* ==================== FOCO VISIBLE Y SELECCIÓN ========================== */
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
-/* Pantalla completa */
-.visor:fullscreen,
-.visor:-webkit-full-screen {
-  background:
-    radial-gradient(60% 60% at 50% 0%, rgba(124, 140, 255, .12), transparent 70%),
-    var(--tinta-0);
-  padding-bottom: 0;
+::selection {
+  background: var(--acento);
+  color: #14161c;
 }
-.visor:fullscreen .dock { bottom: 26px; }
+
+/* Barra de desplazamiento discreta */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+
+::-webkit-scrollbar-thumb {
+  background: var(--superficie-3);
+  border-radius: 999px;
+  border: 2px solid var(--fondo);
+}
+
+::-webkit-scrollbar-thumb:hover { background: var(--borde-fuerte); }

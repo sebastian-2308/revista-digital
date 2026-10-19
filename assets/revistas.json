@@ -1,0 +1,35 @@
+[
+  {
+    "id": "horizontes-01",
+    "titulo": "Horizontes",
+    "numero": "N.º 01",
+    "categoria": "Diseño",
+    "fecha": "2026-10-01",
+    "pdf": "assets/revista.pdf",
+    "portada": "assets/covers/horizontes-01.jpg",
+    "paginas": 10,
+    "descripcion": "Revista de diseño y cultura: la ciudad a pie, el regreso de la arcilla y una conversación con la arquitecta Lucía Ferrán."
+  },
+  {
+    "id": "orbita-07",
+    "titulo": "Órbita",
+    "numero": "N.º 07",
+    "categoria": "Ciencia",
+    "fecha": "2026-09-15",
+    "pdf": "assets/revista-orbita.pdf",
+    "portada": "assets/covers/orbita-07.jpg",
+    "paginas": 6,
+    "descripcion": "Ciencia explicada sin prisa: océano, hielo y las personas que miden el planeta."
+  },
+  {
+    "id": "taller-12",
+    "titulo": "Taller",
+    "numero": "N.º 12",
+    "categoria": "Oficios",
+    "fecha": "2026-10-10",
+    "pdf": "assets/revista-taller.pdf",
+    "portada": "assets/covers/taller-12.jpg",
+    "paginas": 6,
+    "descripcion": "Cuaderno de oficios: madera, cerámica y las manos que todavía hacen las cosas."
+  }
+]
