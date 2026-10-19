@@ -28,9 +28,9 @@ cualquiera.
 - **Agregar bloques**: botón «Agregar bloque» en la barra de edición. Abre una
   galería de modelos ya diseñados que se insertan al final de la sección que
   estés viendo:
-  - Bloque de texto · Lista con viñetas · Foto con pie · Testimonio ·
-    Ficha de integrante (ideal para nuevos miembros) · Cita destacada ·
-    Llamada con botón.
+  - Bloque de texto · Lista con viñetas · Foto con pie (con pie de foto) ·
+    Foto grande a todo el ancho · Testimonio · Ficha de integrante (ideal para
+    nuevos miembros) · Cita destacada · Llamada con botón.
   Sus textos nacen editables y sus fotos se cambian igual que las demás; el ✕
   de un bloque agregado lo elimina en dos toques (no se puede deshacer).
   En la sección Biblioteca el botón aparece deshabilitado.
@@ -171,7 +171,7 @@ claves de `localStorage`.
 
 ## Pruebas
 
-Suites jsdom (50 + 14 + 62 + 14 aserciones) que cubren estantería, filtros,
+Suites jsdom (50 + 14 + 64 + 14 aserciones) que cubren estantería, filtros,
 apertura, navegación, panel, sonido, miniaturas, publicación, el modo
 `file://`, las rutas del sitio, el modo edición del sitio (con la galería de
 bloques predefinidos), el editor de capas sobre páginas, la resiliencia sin

@@ -1698,6 +1698,23 @@ body.modo-texto .capa__texto { cursor: text; }
 .bloque .cita-autor { margin: 0 0 12px; }
 .bloque .lista-puntos { margin-top: 10px; }
 .bloque .foto { margin-bottom: 14px; }
+.bloque .foto--paisaje { aspect-ratio: 16 / 10; }
+.bloque--ancho .foto--paisaje { aspect-ratio: 16 / 8; }
+
+/* Foto grande a todo el ancho (plantilla «Foto grande») */
+.foto--ancha { aspect-ratio: 16 / 8; margin-bottom: 14px; }
+.bloque--foto-grande { padding: clamp(14px, 2.4vw, 24px); }
+.bloque--foto-grande .foto { margin-bottom: 10px; }
+.foto__pie {
+  color: var(--texto-3);
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.55;
+}
+
+@media (max-width: 700px) {
+  .foto--ancha { aspect-ratio: 16 / 10; }
+}
 
 .tabla-envoltura {
   margin-top: 16px;

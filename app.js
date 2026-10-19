@@ -1357,8 +1357,24 @@ const PLANTILLAS_BLOQUE = {
       '<span class="foto__hueco" aria-hidden="true"><em>Sube una foto</em></span>' +
       '<button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>' +
       '</figure>' +
-      '<p class="texto-guia" data-editable="' + c + '.pie">' +
+      '<p class="foto__pie" data-editable="' + c + '.pie">' +
       'Pie de la foto: cuéntale a qué se refiere.</p>' +
+      '</article>'
+  },
+  fotoGrande: {
+    nombre: 'Foto grande',
+    desc: 'Imagen a todo el ancho, ideal para fotos de grupo o de misión.',
+    icono: '<rect x="2" y="5" width="20" height="14" rx="2"/>' +
+      '<circle cx="8" cy="10" r="1.8"/><path d="m22 16-6-6-8 8"/>',
+    html: (c) =>
+      '<article class="bloque bloque--ancho bloque--foto-grande">' +
+      '<figure class="foto foto--ancha" data-foto="' + c + '.foto">' +
+      '<img class="foto__img" alt="Foto grande" hidden>' +
+      '<span class="foto__hueco" aria-hidden="true"><em>Sube una foto grande</em></span>' +
+      '<button class="foto__cambiar boton boton--suave" type="button">Cambiar foto</button>' +
+      '</figure>' +
+      '<p class="foto__pie" data-editable="' + c + '.pie">' +
+      'Pie de la foto: cuéntale al visitante qué se ve.</p>' +
       '</article>'
   },
   testimonio: {
