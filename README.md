@@ -38,6 +38,24 @@ cualquiera.
   acabado no añade peso y respeta `prefers-reduced-motion`. Las transiciones
   son de 150–200 ms.
 
+## Movimiento y tacto (oficio de Emil Kowalski)
+
+Estos detalles siguen los principios de `emilkowalski/skills`:
+
+- **Prensado inmediato**: los botones, chips y fichas hacen `scale(0.97)` en
+  `:active`, no esperan al `click`.
+- **Curvas con carácter**: `--ease-out` para entradas y respuesta, `--ease-drawer`
+  para el panel lateral; nada de `ease-in` en la interfaz.
+- **Duración corta**: entradas de sección y fichas entre 260 y 280 ms; el
+  hover no supera los 260 ms. La animación decorativa se queda por debajo de
+  los 300 ms.
+- **Hover solo con ratón**: los estados `:hover` se neutralizan en pantallas
+  táctiles para que no se queden pegados tras un toque.
+- **Táctil nativo**: sin destello azul al tocar, `touch-action: manipulation`,
+  `100dvh`, safe areas del notch y campos a 16 px para que iOS no haga zoom.
+- **Menos movimiento, no cero**: con `prefers-reduced-motion` se apaga el
+  desplazamiento pero se conservan los cambios de color y opacidad.
+
 ## Dos formas de edición (100 % editable)
 
 ### 1. Configuración del sitio (botón «Configuración»)

@@ -50,6 +50,11 @@
   --radio-lg: 18px;
   --sombra-libro: 0 18px 45px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
   --curva: cubic-bezier(0.22, 0.68, 0.32, 1);
+  /* Curvas fuertes (Emil Kowalski): el ease-out da respuesta inmediata;
+     el drawer se siente como una hoja que se desliza. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
   /* Barras */
   --alto-barra: 64px;
@@ -175,7 +180,11 @@ kbd {
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 120ms var(--ease-out);
 }
 
 .boton:hover:not(:disabled) {
@@ -183,7 +192,7 @@ kbd {
   border-color: var(--borde-fuerte);
 }
 
-.boton:active:not(:disabled) { transform: translateY(1px); }
+.boton:active:not(:disabled) { transform: scale(0.97); }
 
 .boton:disabled {
   opacity: 0.4;
@@ -496,13 +505,13 @@ body.arastrando .zona-arrastre { display: grid; }
   max-width: 1220px;
   margin: 0 auto;
   padding: clamp(26px, 4.5vh, 54px) clamp(18px, 4vw, 56px) 70px;
-  animation: aparecer 0.5s var(--curva) backwards;
+  animation: aparecer 260ms var(--ease-out) backwards;
 }
 
 .biblioteca__cabecera {
   max-width: 1220px;
   margin: 0 auto 30px;
-  animation: aparecer 0.5s var(--curva) backwards;
+  animation: aparecer 260ms var(--ease-out) backwards;
 }
 
 .biblioteca__cabecera h2 {
@@ -533,8 +542,14 @@ body.arastrando .zona-arrastre { display: grid; }
   background: var(--superficie);
   color: var(--texto-2);
   cursor: pointer;
-  transition: all 0.15s;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 120ms var(--ease-out);
 }
+
+.chip:active { transform: scale(0.96); }
 
 .chip:hover { border-color: var(--borde-fuerte); color: var(--texto); }
 
@@ -566,8 +581,8 @@ body.arastrando .zona-arrastre { display: grid; }
   padding: 0;
   cursor: pointer;
   position: relative;
-  animation: aparecer 0.55s var(--curva) backwards;
-  animation-delay: calc(var(--i, 0) * 60ms);
+  animation: aparecer 280ms var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 40ms);
 }
 
 /* Portada tipo libro con lomo */
@@ -578,14 +593,14 @@ body.arastrando .zona-arrastre { display: grid; }
   overflow: hidden;
   background: var(--superficie-2);
   box-shadow: var(--sombra-libro), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  transition: transform 0.3s var(--curva), box-shadow 0.3s;
+  transition: transform 250ms var(--ease-out), box-shadow 250ms ease;
 }
 
 .ficha__portada {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s var(--curva);
+  transition: transform 260ms var(--ease-out);
 }
 
 /* Lomo del libro */
@@ -926,7 +941,7 @@ body.arastrando .zona-arrastre { display: grid; }
   border-left: 1px solid var(--borde);
   box-shadow: -24px 0 70px rgba(0, 0, 0, 0.5);
   transform: translateX(102%);
-  transition: transform 0.32s var(--curva);
+  transition: transform 300ms var(--ease-drawer);
   display: flex;
   flex-direction: column;
 }
@@ -2261,7 +2276,7 @@ body {
 
 .bloque .lista-puntos li::marker { color: var(--acento); }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .bloque:hover,
   .testimonio:hover {
     border-color: rgba(255, 212, 59, 0.55);
@@ -2311,7 +2326,7 @@ body {
   opacity: 0.55;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .bloque--claro:hover,
   .testimonio--claro:hover {
     border-color: var(--acento);
@@ -2414,4 +2429,247 @@ body {
     max-height: calc(100vh - var(--alto-barra) - var(--alto-cinta) - 32px);
   }
 }
+
+/* =========================================================
+   22. OFICIO TÁCTIL Y DE MOVIMIENTO
+   Principios tomados de Emil Kowalski (emilkowalski/skills):
+   prensado inmediato, hover solo con ratón, curvas fuertes,
+   animaciones < 300 ms y nada de bloquear el scroll nativo.
+   ========================================================= */
+
+/* Shell estable en móvil (la barra del navegador cambia de alto) */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  height: 100dvh;
+  overscroll-behavior: none;
+}
+
+.sitio,
+.panel-info__cuerpo,
+.vista-lector,
+.overlay {
+  overscroll-behavior: contain;
+}
+
+/* Los controles responden al dedo, no al clic */
+.boton,
+.chip,
+.menu a,
+.ficha,
+.plantilla,
+.miniatura,
+.bloque__ocultar,
+.foto__cambiar,
+.ficha__quitar {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.boton:active:not(:disabled),
+.chip:active,
+.menu a:active,
+.plantilla:active,
+.miniatura:active {
+  transform: scale(0.97);
+}
+
+.ficha:active .ficha__portada-wrap {
+  transform: scale(0.985);
+  transition-duration: 100ms;
+}
+
+/* En pantallas sin ratón, el hover no debe quedarse pegado tras el toque */
+@media (hover: none), (pointer: coarse) {
+  .ficha:hover .ficha__portada-wrap {
+    transform: none;
+    box-shadow: var(--sombra-libro), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .ficha:hover .ficha__portada,
+  .miniatura:hover img,
+  .slider::-webkit-slider-thumb:hover,
+  .plantilla:hover {
+    transform: none;
+  }
+
+  .plantilla:hover {
+    background: var(--superficie-2);
+    border-color: var(--borde);
+  }
+
+  .bloque:hover,
+  .testimonio:hover {
+    border-color: var(--borde);
+    box-shadow: none;
+  }
+
+  .bloque--claro:hover,
+  .testimonio--claro:hover {
+    border-color: #ffe9a3;
+    box-shadow: 0 20px 44px rgba(0, 0, 0, 0.24);
+  }
+
+  .boton:hover:not(:disabled) {
+    background: var(--superficie-2);
+    border-color: var(--borde);
+  }
+
+  .boton--suave:hover:not(:disabled) { background: transparent; }
+
+  .boton--principal:hover:not(:disabled),
+  .boton--acento:hover:not(:disabled) {
+    background: var(--acento);
+    border-color: transparent;
+  }
+
+  .boton--oscuro:hover:not(:disabled) {
+    background: var(--tinta);
+    color: #fff9df;
+    border-color: var(--tinta);
+  }
+
+  .dock .boton--icono:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .menu a:hover {
+    background: transparent;
+    color: var(--texto-3);
+  }
+
+  .menu a[aria-current="page"]:hover {
+    background: var(--acento);
+    color: var(--tinta);
+  }
+
+  .menu__biblioteca:hover {
+    background: transparent;
+    color: var(--acento);
+    border-color: rgba(255, 212, 59, 0.55);
+  }
+
+  .chip:hover {
+    border-color: var(--borde);
+    color: var(--texto-2);
+  }
+
+  .chip[aria-selected="true"]:hover {
+    background: var(--acento);
+    color: var(--tinta);
+    border-color: transparent;
+  }
+
+  #btnModoEdicion:hover {
+    background: transparent;
+    color: var(--texto);
+    border-color: rgba(255, 212, 59, 0.42);
+  }
+
+  #btnModoEdicion[aria-pressed="true"]:hover {
+    background: var(--acento);
+    color: var(--tinta);
+    border-color: var(--acento);
+  }
+
+  .ficha--nueva:hover .ficha__portada-wrap {
+    transform: none;
+    border-color: var(--borde-fuerte);
+    color: var(--texto-3);
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .ficha__quitar:hover { background: rgba(16, 10, 10, 0.82); }
+
+  .bloque__ocultar:hover {
+    color: var(--texto-2);
+    border-color: var(--borde);
+  }
+
+  .lista-redes a:hover { color: var(--texto-2); }
+  body.modo-edicion [data-editable]:hover { background: transparent; }
+}
+
+/* El prensado gana al reset de hover en pantallas táctiles */
+.ficha:active .ficha__portada-wrap { transform: scale(0.985); }
+.plantilla:active { transform: scale(0.97); }
+
+/* Sin teclado físico, los campos a 16 px evitan el zoom de iOS */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Safe areas: el contenido no se mete bajo el notch ni el home indicator */
+:root {
+  --alto-seguro: env(safe-area-inset-top, 0px);
+  color-scheme: dark;
+}
+
+.barra--sitio,
+.barra--lector {
+  height: calc(var(--alto-barra) + var(--alto-seguro));
+  padding-top: var(--alto-seguro);
+}
+
+.pie {
+  padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+.barra-edicion {
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+}
+
+.dock {
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 901px) {
+  body.modo-edicion .barra-edicion {
+    top: calc(var(--alto-barra) + var(--alto-seguro) + var(--alto-cinta) + 16px);
+    max-height: calc(100dvh - var(--alto-barra) - var(--alto-seguro) - var(--alto-cinta) - 32px);
+  }
+}
+
+/* Reducción de movimiento: se apaga el desplazamiento, no el color */
+@media (prefers-reduced-motion: reduce) {
+  .web,
+  .biblioteca__cabecera,
+  .ficha {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .ficha__portada-wrap,
+  .ficha__portada,
+  .panel-info,
+  .miniatura img,
+  .bloque,
+  .testimonio {
+    transition-duration: 0.001s !important;
+  }
+
+  .boton,
+  .chip,
+  .menu a,
+  .llamada,
+  [data-editable] {
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      border-color 160ms ease !important;
+  }
+}
+
 
