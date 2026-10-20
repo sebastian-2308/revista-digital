@@ -21,13 +21,19 @@ cualquiera.
 
 ## Estética editorial (sin peso extra)
 
+- **Base de la web original**: fondo tinta `#080f13` y texto hueso, con un
+  **amarillo vivo** (`#ffd43b` → `#ffb703`) como protagonista en la cinta,
+  los números de sección, la navegación, el héroe y las llamadas.
 - **Tipografías variables** (Fraunces + Inter): una sola petición por familia y
   el navegador descarga solo los subconjuntos que usa, en lugar de un archivo
   por peso.
-- **Detalles de revista solo con CSS**: numeración de secciones (01–06), línea
-  de cierre, foto del héroe con marco desplazado, comillas decorativas y autor
-  en versalitas en los testimonios, filo dorado en las llamadas, trama y
-  esquinas en los huecos de foto, y rombo en el pie.
+- **Contraste editorial**: tarjeta crema para «¿Quiénes somos?» y para los
+  testimonios pares, como las superficies claras de la web original; el resto
+  de tarjetas siguen en tinta para que el amarillo respire.
+- **Detalles de revista solo con CSS**: cinta de identidad, numeración de
+  secciones (01–06), línea de cierre, foto del héroe con marco desplazado,
+  comillas decorativas y autor en versalitas en los testimonios, filo dorado en
+  las llamadas, trama y esquinas en los huecos de foto, y rombo en el pie.
 - **Sin imágenes de adorno, iconos externos ni librerías de animación**: el
   acabado no añade peso y respeta `prefers-reduced-motion`. Las transiciones
   son de 150–200 ms.

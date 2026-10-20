@@ -163,6 +163,7 @@ const $ = (sel) => document.querySelector(sel);
 const ui = {
   // sitio (cabecera, secciones y modo edición)
   cabeceraSitio: $('#cabeceraSitio'),
+  cintaSitio: $('#cintaSitio'),
   sitio: $('#principal'),
   pieSitio: $('#pieSitio'),
   menuSitio: $('#menuSitio'),
@@ -2591,6 +2592,7 @@ function mostrarVista(v) {
   document.body.classList.toggle('vista-lector', lector);
 
   ui.cabeceraSitio.hidden = lector;
+  ui.cintaSitio.hidden = lector;
   ui.sitio.hidden = lector;
   ui.pieSitio.hidden = lector;
   ui.barraLector.hidden = !lector;

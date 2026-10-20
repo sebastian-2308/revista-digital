@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Noti-Misión · sitio del grupo juvenil con biblioteca de revistas digitales tipo flipbook: publica PDFs y léelos con volteo 3D, sonido de página y pantalla completa.">
-  <meta name="theme-color" content="#0a0c10">
+  <meta name="theme-color" content="#080f13">
 
   <title>Noti-Misión · Sitio y biblioteca</title>
 
@@ -23,9 +23,9 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" async></script>
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" async></script>
-  <script src="app.js?v=10" defer></script>
+  <script src="app.js?v=11" defer></script>
 
-  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="styles.css?v=13">
 </head>
 
 <body class="vista-biblioteca">
@@ -69,6 +69,12 @@
     </div>
   </header>
 
+  <!-- Cinta de identidad: el golpe de amarillo que abre el sitio -->
+  <div class="cinta" id="cintaSitio">
+    <span class="cinta__largo">JUMISMAC <strong>✦</strong> Juventud Misionera Madre Cabrini <strong>✦</strong> Caracas, Venezuela</span>
+    <span class="cinta__corto">JUMISMAC <strong>✦</strong> Caracas</span>
+  </div>
+
   <!-- =========================================================
        CONTENIDO DEL SITIO (secciones por hash #/nombre)
        ========================================================== -->
@@ -101,7 +107,7 @@
       </div>
 
       <div class="bloques" data-zona-nuevos>
-        <article class="bloque" data-bloque="inicio.quienes">
+        <article class="bloque bloque--claro" data-bloque="inicio.quienes">
           <h2 data-editable="inicio.quienes.titulo">¿Quiénes somos?</h2>
           <p class="texto-guia" data-editable="inicio.quienes.texto">
             Somos JUMISMAC (Juventud Misionera Madre Cabrini), una estación de
@@ -112,7 +118,7 @@
         </article>
 
         <article class="bloque" data-bloque="inicio.historia">
-          <h2 data-editable="inicio.historia.titulo">Nuestra historia y evolución</h2>
+          <h2 data-editable="inicio.historia.titulo">Nuestra Historia y Evolución</h2>
           <ul class="lista-puntos">
             <li data-editable="inicio.historia.origenes">
               <strong>Orígenes:</strong> comenzamos nuestra labor bajo la
@@ -130,7 +136,7 @@
         </article>
 
         <article class="bloque" data-bloque="inicio.propuesta">
-          <h2 data-editable="inicio.propuesta.titulo">Nuestra propuesta y enfoque</h2>
+          <h2 data-editable="inicio.propuesta.titulo">Nuestra Propuesta y Enfoque</h2>
           <ul class="lista-puntos">
             <li data-editable="inicio.propuesta.salida">
               <strong>Salida y servicio:</strong> realizamos misiones viajando a
@@ -146,6 +152,19 @@
           </ul>
         </article>
       </div>
+
+      <aside class="llamada llamada--testimonios">
+        <div>
+          <p class="epigrafe" data-editable="inicio.voces.epigrafe">Voces del grupo</p>
+          <h2 data-editable="inicio.voces.titulo">Conoce el testimonio de los jóvenes</h2>
+          <p class="texto-guia" data-editable="inicio.voces.texto">
+            Así llegaron a la estación, qué les hizo quedarse y lo que esperan de
+            su primera experiencia misionera. Sus palabras son el mejor retrato
+            de lo que se vive en JUMISMAC.
+          </p>
+        </div>
+        <a class="boton boton--oscuro" href="#/testimonios">Leer sus historias</a>
+      </aside>
 
       <aside class="llamada">
         <div>
@@ -186,7 +205,7 @@
           <p class="testimonio__autor" data-editable="testimonio.1.autor">— Melany Benítez</p>
         </article>
 
-        <article class="testimonio" data-bloque="testimonio.2">
+        <article class="testimonio testimonio--claro" data-bloque="testimonio.2">
           <figure class="foto foto--retrato" data-foto="testimonio.2.foto">
             <img class="foto__img" alt="Retrato del testimonio" hidden>
             <span class="foto__hueco" aria-hidden="true"><em>Añade una foto</em></span>
@@ -212,7 +231,7 @@
           <p class="testimonio__autor" data-editable="testimonio.3.autor">— Yeisly Rosales</p>
         </article>
 
-        <article class="testimonio" data-bloque="testimonio.4">
+        <article class="testimonio testimonio--claro" data-bloque="testimonio.4">
           <figure class="foto foto--retrato" data-foto="testimonio.4.foto">
             <img class="foto__img" alt="Retrato del testimonio" hidden>
             <span class="foto__hueco" aria-hidden="true"><em>Añade una foto</em></span>
@@ -237,7 +256,7 @@
           <p class="testimonio__autor" data-editable="testimonio.5.autor">— Agatha Valero</p>
         </article>
 
-        <article class="testimonio" data-bloque="testimonio.6">
+        <article class="testimonio testimonio--claro" data-bloque="testimonio.6">
           <figure class="foto foto--retrato" data-foto="testimonio.6.foto">
             <img class="foto__img" alt="Retrato del testimonio" hidden>
             <span class="foto__hueco" aria-hidden="true"><em>Añade una foto</em></span>
