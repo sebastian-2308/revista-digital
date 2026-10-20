@@ -3158,8 +3158,10 @@ body {
 }
 
 .vista-previa__edicion {
-  margin: -2px 0 12px;
-  color: var(--acento);
+  margin: 14px 0 8px;
+  padding-left: 9px;
+  border-left: 2px solid var(--acento);
+  color: var(--texto-3);
   font-size: 0.76rem;
   line-height: 1.45;
 }
