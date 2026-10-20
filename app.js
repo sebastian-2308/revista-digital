@@ -52,6 +52,33 @@ const CLAVE_CAPAS = 'revista:capas:';
     resultado aquí. */
 const HUELLA_CLAVE_SITIO = 'c22adf43';
 
+/* ========================= 1.1 TEMA DEL SITIO ============================= */
+/* La apariencia se guarda junto con los textos y las fotos, dentro de
+   revista:sitio. Estos son los valores de fábrica y las familias disponibles:
+   no se descargan fuentes nuevas, solo se elige entre las que ya carga el
+   sitio o entre pilas del sistema. */
+
+const TEMA_POR_DEFECTO = {
+  acento: '#ffd43b',
+  fondo: '#080f13',
+  superficie: '#101b21',
+  texto: '#f7f8f3',
+  papel: '#fffaf0',
+  titulos: 'fraunces',
+  textoFuente: 'archivo',
+  radio: 4,
+  borde: 4,
+  cinta: true
+};
+
+const FUENTES_TEMA = {
+  fraunces: '"Fraunces", Georgia, "Times New Roman", serif',
+  georgia: 'Georgia, "Times New Roman", serif',
+  archivo: '"Archivo", "Segoe UI", system-ui, -apple-system, sans-serif',
+  sistema: 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif',
+  mono: 'ui-monospace, "Cascadia Mono", Consolas, monospace'
+};
+
 /** Secciones del sitio (enrutado por hash #/nombre). */
 const SECCIONES = ['inicio', 'testimonios', 'misiones', 'extension',
   'consejos', 'informacion', 'biblioteca'];
@@ -69,43 +96,10 @@ const NOMBRES_SECCION = {
 
 /* ========================= 2. CATÁLOGO RESIDENTE ========================== */
 /* Copia de seguridad de assets/revistas.json para cuando el navegador no
-   permite leer archivos locales (file://) o falla la red. */
+   permite leer archivos locales (file://) o falla la red. La biblioteca nace
+   vacía: el equipo publica sus propias revistas desde la interfaz. */
 
-const CATALOGO_RESIDENTE = [
-  {
-    id: 'horizontes-01',
-    titulo: 'Horizontes',
-    numero: 'N.º 01',
-    categoria: 'Diseño',
-    fecha: '2026-10-01',
-    pdf: 'assets/revista.pdf',
-    portada: 'assets/covers/horizontes-01.jpg',
-    paginas: 10,
-    descripcion: 'Revista de diseño y cultura: la ciudad a pie, el regreso de la arcilla y una conversación con la arquitecta Lucía Ferrán.'
-  },
-  {
-    id: 'orbita-07',
-    titulo: 'Órbita',
-    numero: 'N.º 07',
-    categoria: 'Ciencia',
-    fecha: '2026-09-15',
-    pdf: 'assets/revista-orbita.pdf',
-    portada: 'assets/covers/orbita-07.jpg',
-    paginas: 6,
-    descripcion: 'Ciencia explicada sin prisa: océano, hielo y las personas que miden el planeta.'
-  },
-  {
-    id: 'taller-12',
-    titulo: 'Taller',
-    numero: 'N.º 12',
-    categoria: 'Oficios',
-    fecha: '2026-10-10',
-    pdf: 'assets/revista-taller.pdf',
-    portada: 'assets/covers/taller-12.jpg',
-    paginas: 6,
-    descripcion: 'Cuaderno de oficios: madera, cerámica y las manos que todavía hacen las cosas.'
-  }
-];
+const CATALOGO_RESIDENTE = [];
 
 /* ========================= 3. ESTADO DE LA APP ============================ */
 
@@ -196,10 +190,22 @@ const ui = {
   chipsCategorias: $('#chipsCategorias'),
   contarRevistas: $('#contarRevistas'),
   bibliotecaVacia: $('#bibliotecaVacia'),
+  bibliotecaVacioTexto: $('#bibliotecaVacioTexto'),
   inputBusqueda: $('#inputBusqueda'),
   inputPublicar: $('#inputPublicar'),
   btnPublicar: $('#btnPublicar'),
+  btnPublicarVacio: $('#btnPublicarVacio'),
   btnVerTodas: $('#btnVerTodas'),
+  modalVistaPrevia: $('#modalVistaPrevia'),
+  previaPortada: $('#previaPortada'),
+  previaSinPortada: $('#previaSinPortada'),
+  previaCategoria: $('#previaCategoria'),
+  previaTitulo: $('#previaTitulo'),
+  previaMeta: $('#previaMeta'),
+  previaDescripcion: $('#previaDescripcion'),
+  btnLeerPrevia: $('#btnLeerPrevia'),
+  btnDescargarPrevia: $('#btnDescargarPrevia'),
+  btnCerrarPrevia: $('#btnCerrarPrevia'),
 
   // lector
   zonaLibro: $('#zonaLibro'),
@@ -252,11 +258,205 @@ const ui = {
   datoPaginas: $('#datoPaginas'),
   datoFormato: $('#datoFormato'),
   datoFecha: $('#datoFecha'),
-  aviso: $('#aviso')
+  aviso: $('#aviso'),
+
+  // apariencia del sitio
+  btnApariencia: $('#btnApariencia'),
+  modalApariencia: $('#modalApariencia'),
+  btnCerrarApariencia: $('#btnCerrarApariencia'),
+  btnAparienciaListo: $('#btnAparienciaListo'),
+  btnTemaRestablecer: $('#btnTemaRestablecer'),
+  temaAcento: $('#temaAcento'),
+  temaFondo: $('#temaFondo'),
+  temaSuperficie: $('#temaSuperficie'),
+  temaTexto: $('#temaTexto'),
+  temaPapel: $('#temaPapel'),
+  temaFuenteTitulos: $('#temaFuenteTitulos'),
+  temaFuenteTexto: $('#temaFuenteTexto'),
+  temaRadio: $('#temaRadio'),
+  temaRadioValor: $('#temaRadioValor'),
+  temaBorde: $('#temaBorde'),
+  temaBordeValor: $('#temaBordeValor'),
+  temaCinta: $('#temaCinta'),
+  temaContraste: $('#temaContraste')
 };
 
 /** Limita un número a un rango. */
 const limite = (valor, min, max) => Math.min(max, Math.max(min, valor));
+
+/* --- Tema: normalización, mezclas y aplicación de variables --------------- */
+
+const COLOR_HEX = /^#[0-9a-f]{6}$/i;
+
+function colorTema(valor, defecto) {
+  return COLOR_HEX.test(String(valor || '').trim()) ? String(valor).trim().toLowerCase() : defecto;
+}
+
+function numeroTema(valor, defecto, min, max) {
+  const n = Number(valor);
+  return Number.isFinite(n) ? limite(Math.round(n), min, max) : defecto;
+}
+
+/** Deja el tema en una forma segura y completa (sirve para importar JSON). */
+function normalizarTema(datos) {
+  const d = datos && typeof datos === 'object' ? datos : {};
+  return {
+    acento: colorTema(d.acento, TEMA_POR_DEFECTO.acento),
+    fondo: colorTema(d.fondo, TEMA_POR_DEFECTO.fondo),
+    superficie: colorTema(d.superficie, TEMA_POR_DEFECTO.superficie),
+    texto: colorTema(d.texto, TEMA_POR_DEFECTO.texto),
+    papel: colorTema(d.papel, TEMA_POR_DEFECTO.papel),
+    titulos: FUENTES_TEMA[d.titulos] ? d.titulos : TEMA_POR_DEFECTO.titulos,
+    textoFuente: FUENTES_TEMA[d.textoFuente] ? d.textoFuente : TEMA_POR_DEFECTO.textoFuente,
+    radio: numeroTema(d.radio, TEMA_POR_DEFECTO.radio, 0, 18),
+    borde: numeroTema(d.borde, TEMA_POR_DEFECTO.borde, 0, 8),
+    cinta: d.cinta !== false
+  };
+}
+
+function hexARgb(hex) {
+  const limpio = String(hex || '#000000').replace('#', '');
+  return [
+    parseInt(limpio.slice(0, 2), 16) || 0,
+    parseInt(limpio.slice(2, 4), 16) || 0,
+    parseInt(limpio.slice(4, 6), 16) || 0
+  ];
+}
+
+function rgbAHex(r, g, b) {
+  return '#' + [r, g, b].map((v) =>
+    Math.round(limite(v, 0, 255)).toString(16).padStart(2, '0')).join('');
+}
+
+/** Mezcla dos colores: cantidad 0 = a, cantidad 1 = b. */
+function mezclarHex(a, b, cantidad) {
+  const ca = hexARgb(a);
+  const cb = hexARgb(b);
+  const p = limite(cantidad, 0, 1);
+  return rgbAHex(
+    ca[0] + (cb[0] - ca[0]) * p,
+    ca[1] + (cb[1] - ca[1]) * p,
+    ca[2] + (cb[2] - ca[2]) * p
+  );
+}
+
+function luminanciaHex(hex) {
+  const canales = hexARgb(hex).map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * canales[0] + 0.7152 * canales[1] + 0.0722 * canales[2];
+}
+
+function contrasteHex(a, b) {
+  const x = luminanciaHex(a);
+  const y = luminanciaHex(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+
+/** Tinta legible sobre el color principal. */
+function tintaPara(hex) {
+  return contrasteHex(hex, '#14120c') >= contrasteHex(hex, '#fffaf0')
+    ? '#14120c' : '#fffaf0';
+}
+
+/** Texto legible sobre el papel claro/oscuro. */
+function textoPapelPara(hex) {
+  return luminanciaHex(hex) > 0.42 ? '#2a261c' : '#f4efe2';
+}
+
+/** Aplica el tema guardado a las variables CSS del documento. */
+function aplicarTema() {
+  const t = normalizarTema(estado.sitio && estado.sitio.tema);
+  const r = document.documentElement.style;
+  const tinta = tintaPara(t.acento);
+  const textoPapel = textoPapelPara(t.papel);
+
+  r.setProperty('--acento', t.acento);
+  r.setProperty('--acento-2', t.acento);
+  r.setProperty('--acento-suave', mezclarHex(t.acento, '#ffffff', 0.35));
+  r.setProperty('--acento-tenue', 'rgba(' + hexARgb(t.acento).join(', ') + ', 0.16)');
+  r.setProperty('--fondo', t.fondo);
+  r.setProperty('--superficie', t.superficie);
+  r.setProperty('--superficie-2', mezclarHex(t.superficie, t.texto, 0.08));
+  r.setProperty('--superficie-3', mezclarHex(t.superficie, t.texto, 0.15));
+  r.setProperty('--borde', mezclarHex(t.superficie, t.texto, 0.24));
+  r.setProperty('--borde-fuerte', mezclarHex(t.superficie, t.texto, 0.4));
+  r.setProperty('--texto', t.texto);
+  r.setProperty('--texto-2', mezclarHex(t.texto, t.fondo, 0.22));
+  r.setProperty('--texto-3', mezclarHex(t.texto, t.fondo, 0.45));
+  r.setProperty('--crema', t.papel);
+  r.setProperty('--crema-2', mezclarHex(t.papel, t.acento, 0.08));
+  r.setProperty('--tinta', tinta);
+  r.setProperty('--texto-acento-2', mezclarHex(tinta, t.acento, 0.14));
+  r.setProperty('--texto-papel', textoPapel);
+  r.setProperty('--texto-papel-2', mezclarHex(textoPapel, t.papel, 0.24));
+  r.setProperty('--radio-tarjeta', t.radio + 'px');
+  r.setProperty('--borde-tarjeta', t.borde + 'px');
+  r.setProperty('--fuente-display', FUENTES_TEMA[t.titulos]);
+  r.setProperty('--fuente-texto', FUENTES_TEMA[t.textoFuente]);
+
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t.fondo);
+  document.body.classList.toggle('sin-cinta', !t.cinta);
+
+  if (ui.temaContraste) {
+    const bajoAcento = contrasteHex(t.acento, t.fondo) < 4.5;
+    const bajoTexto = contrasteHex(t.texto, t.fondo) < 4.5;
+    ui.temaContraste.hidden = !(bajoAcento || bajoTexto);
+    ui.temaContraste.textContent = bajoAcento
+      ? 'El color principal no contrasta lo suficiente con el fondo. Prueba con un tono más claro u oscuro.'
+      : 'El color del texto no contrasta lo suficiente con el fondo.';
+  }
+}
+
+/** Vuelca el tema actual en los controles del panel de apariencia. */
+function sincronizarControlesTema() {
+  if (!ui.modalApariencia) return;
+  const t = normalizarTema(estado.sitio && estado.sitio.tema);
+  ui.temaAcento.value = t.acento;
+  ui.temaFondo.value = t.fondo;
+  ui.temaSuperficie.value = t.superficie;
+  ui.temaTexto.value = t.texto;
+  ui.temaPapel.value = t.papel;
+  ui.temaFuenteTitulos.value = t.titulos;
+  ui.temaFuenteTexto.value = t.textoFuente;
+  ui.temaRadio.value = String(t.radio);
+  ui.temaRadioValor.textContent = t.radio + ' px';
+  ui.temaBorde.value = String(t.borde);
+  ui.temaBordeValor.textContent = t.borde + ' px';
+  ui.temaCinta.checked = t.cinta;
+}
+
+/** Lee un control y aplica el cambio en vivo. */
+function cambiarTema(campo, valor) {
+  estado.sitio.tema = normalizarTema(Object.assign({}, estado.sitio.tema, { [campo]: valor }));
+  aplicarTema();
+  guardarSitioProgramado();
+}
+
+/** Abre o cierra el panel de apariencia. */
+function alternarApariencia(abrir) {
+  if (!ui.modalApariencia) return;
+  if (abrir) {
+    sincronizarControlesTema();
+    aplicarTema();
+    ui.modalApariencia.classList.remove('oculto');
+    setTimeout(() => ui.temaAcento.focus(), 30);
+  } else {
+    ui.modalApariencia.classList.add('oculto');
+    if (ui.btnApariencia) ui.btnApariencia.focus();
+  }
+}
+
+/** Devuelve solo la apariencia a los valores de fábrica. */
+function restablecerTema() {
+  estado.sitio.tema = normalizarTema(null);
+  aplicarTema();
+  sincronizarControlesTema();
+  guardarSitio();
+  avisar('Apariencia restablecida. Los textos y las fotos no se han tocado.');
+}
 
 /** Formatea pesos de archivo (bytes → KB/MB). */
 function formatearPeso(bytes) {
@@ -469,6 +669,9 @@ function renderizarChips() {
 
   crear('Todas', '');
   for (const cat of categorias) crear(cat, cat);
+
+  // Sin revistas, los filtros no aportan nada.
+  ui.chipsCategorias.hidden = catalogoCompleto().length === 0;
 }
 
 /** Genera una ficha de revista en la estantería. */
@@ -495,6 +698,42 @@ function crearFicha(pub, indice) {
     '</div>' +
     '<h3 class="ficha__titulo">' + pub.titulo + '</h3>' +
     '<p class="ficha__meta">' + meta + '</p>';
+
+  // Acciones rápidas: ver la ficha antes de abrir y descargar el PDF original.
+  const acciones = document.createElement('div');
+  acciones.className = 'ficha__acciones';
+
+  const btnPrevia = document.createElement('button');
+  btnPrevia.type = 'button';
+  btnPrevia.className = 'ficha__accion';
+  btnPrevia.innerHTML =
+    '<svg viewBox="0 0 24 24" class="icono" aria-hidden="true">' +
+    '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>' +
+    '<circle cx="12" cy="12" r="2.6"/></svg><span>Vista previa</span>';
+  btnPrevia.setAttribute('aria-label', 'Vista previa de «' + pub.titulo + '»');
+  btnPrevia.addEventListener('click', (e) => {
+    e.stopPropagation();
+    abrirVistaPrevia(pub);
+  });
+  btnPrevia.addEventListener('keydown', (e) => e.stopPropagation());
+
+  const btnDescargar = document.createElement('button');
+  btnDescargar.type = 'button';
+  btnDescargar.className = 'ficha__accion';
+  btnDescargar.innerHTML =
+    '<svg viewBox="0 0 24 24" class="icono" aria-hidden="true">' +
+    '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>' +
+    '<path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg><span>Descargar</span>';
+  btnDescargar.setAttribute('aria-label', 'Descargar el PDF de «' + pub.titulo + '»');
+  btnDescargar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    descargarPublicacion(pub);
+  });
+  btnDescargar.addEventListener('keydown', (e) => e.stopPropagation());
+
+  acciones.appendChild(btnPrevia);
+  acciones.appendChild(btnDescargar);
+  ficha.appendChild(acciones);
 
   // Quitar publicación propia (confirmación en dos toques)
   if (pub.propia) {
@@ -562,7 +801,9 @@ function renderizarEstanteria() {
   fichaNueva.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lanzar(); }
   });
-  ui.estanteria.appendChild(fichaNueva);
+  // Con la biblioteca vacía, el estado vacío ya ofrece «Publicar la primera»:
+  // evitamos duplicar la misma acción con una ficha más.
+  if (total > 0) ui.estanteria.appendChild(fichaNueva);
 
   visibles.forEach((pub, i) => ui.estanteria.appendChild(crearFicha(pub, i + 1)));
 
@@ -570,9 +811,21 @@ function renderizarEstanteria() {
 
   const filtrando = !!(estado.filtro.texto.trim() || estado.filtro.categoria);
   const palabra = total === 1 ? 'publicación' : 'publicaciones';
-  ui.contarRevistas.textContent = filtrando
-    ? visibles.length + ' de ' + total + ' ' + palabra
-    : total + ' ' + palabra;
+
+  if (total === 0) {
+    ui.contarRevistas.textContent = 'Aún no hay publicaciones';
+    ui.bibliotecaVacioTexto.textContent =
+      'La biblioteca está vacía. Publica la primera revista para empezar.';
+    ui.btnPublicarVacio.hidden = false;
+    ui.btnVerTodas.hidden = true;
+  } else {
+    ui.contarRevistas.textContent = filtrando
+      ? visibles.length + ' de ' + total + ' ' + palabra
+      : total + ' ' + palabra;
+    ui.bibliotecaVacioTexto.textContent = 'Ninguna revista coincide con tu búsqueda.';
+    ui.btnPublicarVacio.hidden = true;
+    ui.btnVerTodas.hidden = false;
+  }
 }
 
 /* ========================= 8. PUBLICAR UN PDF ============================= */
@@ -906,6 +1159,100 @@ async function abrirPublicacion(pub) {
     mostrarPanelArchivo();
   } finally {
     estado.abriendo = false;
+  }
+}
+
+/* --- Vista previa y descarga desde la biblioteca ------------------------- */
+
+let pubPrevia = null;
+let focoAntesPrevia = null;
+
+/** Abre la ficha ampliada de una revista antes de leerla o descargarla. */
+function abrirVistaPrevia(pub) {
+  if (!pub || !ui.modalVistaPrevia) return;
+  pubPrevia = pub;
+  focoAntesPrevia = document.activeElement;
+
+  ui.previaCategoria.textContent = pub.categoria ||
+    (pub.propia ? 'Tu publicación' : 'Biblioteca');
+  ui.previaTitulo.textContent = pub.titulo || 'Revista';
+  ui.previaMeta.textContent = [
+    pub.numero,
+    pub.paginas ? pub.paginas + ' páginas' : null,
+    pub.fecha ? formatearFecha(pub.fecha) : null
+  ].filter(Boolean).join(' · ');
+  ui.previaDescripcion.textContent = pub.descripcion ||
+    'Una edición de la biblioteca de Noti‑Misión. Ábrela para hojearla o descarga el PDF original.';
+
+  if (pub.portada) {
+    ui.previaPortada.src = pub.portada;
+    ui.previaPortada.hidden = false;
+    ui.previaSinPortada.hidden = true;
+  } else {
+    ui.previaPortada.removeAttribute('src');
+    ui.previaPortada.hidden = true;
+    ui.previaSinPortada.hidden = false;
+  }
+
+  ui.modalVistaPrevia.classList.remove('oculto');
+  setTimeout(() => ui.btnLeerPrevia.focus(), 30);
+}
+
+/** Cierra la vista previa y devuelve el foco a la ficha de origen. */
+function cerrarVistaPrevia() {
+  if (!ui.modalVistaPrevia) return;
+  ui.modalVistaPrevia.classList.add('oculto');
+  pubPrevia = null;
+  if (focoAntesPrevia && typeof focoAntesPrevia.focus === 'function') {
+    focoAntesPrevia.focus();
+  }
+  focoAntesPrevia = null;
+}
+
+/** Nombre de archivo seguro (sin acentos ni signos raros). */
+function nombreArchivoPdf(titulo) {
+  return String(titulo || 'revista')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'revista';
+}
+
+/** Descarga el PDF original de una publicación propia o del catálogo. */
+async function descargarPublicacion(pub) {
+  if (!pub) return;
+  try {
+    let blob;
+    if (pub.bytes) {
+      const datos = pub.bytes instanceof Uint8Array ? pub.bytes : new Uint8Array(pub.bytes);
+      blob = new Blob([datos], { type: 'application/pdf' });
+    } else {
+      const respuesta = await fetch(pub.pdf, { cache: 'no-store' });
+      if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+      blob = await respuesta.blob();
+    }
+    descargarBlob(blob, nombreArchivoPdf(pub.titulo) + '.pdf');
+    avisar('Descargando «' + pub.titulo + '».');
+  } catch (e) {
+    console.warn('No se pudo descargar la revista:', e);
+    avisar('No se pudo descargar el PDF. Comprueba la conexión e inténtalo de nuevo.', true);
+  }
+}
+
+/** Mantiene el foco dentro de un diálogo abierto. */
+function trampaFoco(contenedor, ev) {
+  const focos = Array.from(contenedor.querySelectorAll(
+    'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])'
+  )).filter((el) => !el.disabled && el.offsetParent !== null);
+  if (!focos.length) return;
+  const primero = focos[0];
+  const ultimo = focos[focos.length - 1];
+  if (ev.shiftKey && document.activeElement === primero) {
+    ev.preventDefault();
+    ultimo.focus();
+  } else if (!ev.shiftKey && document.activeElement === ultimo) {
+    ev.preventDefault();
+    primero.focus();
   }
 }
 
@@ -1474,7 +1821,8 @@ function normalizarSitio(datos) {
     textos: (d.textos && typeof d.textos === 'object') ? d.textos : {},
     fotos: (d.fotos && typeof d.fotos === 'object') ? d.fotos : {},
     ocultos: Array.isArray(d.ocultos) ? d.ocultos.slice() : [],
-    nuevos: nuevos
+    nuevos: nuevos,
+    tema: normalizarTema(d.tema)
   };
 }
 
@@ -1518,6 +1866,12 @@ async function cargarEdicionesPublicadas() {
     if (!r.ok) return;
     const datos = normalizarSitio(await r.json());
     const locales = estado.sitio;
+    // El tema de la base solo manda si este navegador no guardó uno propio.
+    let tieneTemaLocal = false;
+    try {
+      const guardado = JSON.parse(localStorage.getItem(CLAVE_SITIO) || 'null');
+      tieneTemaLocal = !!(guardado && guardado.tema);
+    } catch { /* sin tema local */ }
     // los bloques nuevos propios mandan sobre los de la base (mismo id)
     const porId = new Map();
     datos.nuevos.concat(locales.nuevos).forEach((e) => porId.set(e.id, e));
@@ -1525,7 +1879,8 @@ async function cargarEdicionesPublicadas() {
       textos: Object.assign({}, datos.textos, locales.textos),
       fotos: Object.assign({}, datos.fotos, locales.fotos),
       ocultos: Array.from(new Set(datos.ocultos.concat(locales.ocultos))),
-      nuevos: Array.from(porId.values())
+      nuevos: Array.from(porId.values()),
+      tema: tieneTemaLocal ? locales.tema : datos.tema
     });
   } catch { /* file:// o sin archivo: seguimos con lo local */ }
 }
@@ -1964,16 +2319,22 @@ function importarCambiosSitio(archivo) {
   lector.onerror = () => avisar('No se pudo leer el archivo JSON.', true);
   lector.onload = () => {
     try {
-      const datos = normalizarSitio(JSON.parse(lector.result));
+      const crudo = JSON.parse(lector.result);
+      const datos = normalizarSitio(crudo);
       const porId = new Map();
       estado.sitio.nuevos.concat(datos.nuevos).forEach((e) => porId.set(e.id, e));
       estado.sitio = normalizarSitio({
         textos: Object.assign({}, estado.sitio.textos, datos.textos),
         fotos: Object.assign({}, estado.sitio.fotos, datos.fotos),
         ocultos: Array.from(new Set(estado.sitio.ocultos.concat(datos.ocultos))),
-        nuevos: Array.from(porId.values())
+        nuevos: Array.from(porId.values()),
+        // Un archivo antiguo sin «tema» no debe borrar la apariencia actual.
+        tema: (crudo && crudo.tema)
+          ? Object.assign({}, estado.sitio.tema, datos.tema)
+          : estado.sitio.tema
       });
       guardarSitio();
+      aplicarTema();
       aplicarEdicionesSitio();
       if (estado.modoEdicionSitio) inyectarBotonesBloque();
       avisar('Cambios importados.');
@@ -2010,6 +2371,7 @@ function restablecerSitio() {
 
   estado.sitio = normalizarSitio(null);
   try { localStorage.removeItem(CLAVE_SITIO); } catch { /* noop */ }
+  aplicarTema();
   aplicarEdicionesSitio();
   if (estado.modoEdicionSitio) inyectarBotonesBloque();
   avisar('Sitio restablecido al contenido original (los bloques agregados se eliminaron).');
@@ -2625,11 +2987,13 @@ async function cargarCatalogo() {
     const respuesta = await fetch('assets/revistas.json', { cache: 'no-store' });
     if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
     const datos = await respuesta.json();
-    if (Array.isArray(datos) && datos.length) {
+    // Un catálogo vacío es válido: la biblioteca empieza sin revistas de
+    // ejemplo y solo muestra lo que publique el equipo.
+    if (Array.isArray(datos)) {
       estado.catalogo = datos;
       return;
     }
-    throw new Error('manifiesto vacío');
+    throw new Error('manifiesto ilegible');
   } catch (e) {
     console.info('Usando el catálogo residente (revistas.json ilegible):', e && e.message);
     estado.catalogo = CATALOGO_RESIDENTE.map((c) => Object.assign({}, c));
@@ -2656,6 +3020,7 @@ function enlazarEventos() {
   });
 
   ui.btnPublicar.addEventListener('click', () => ui.inputPublicar.click());
+  ui.btnPublicarVacio.addEventListener('click', () => ui.inputPublicar.click());
   ui.inputPublicar.addEventListener('change', () => {
     publicarPDF(ui.inputPublicar.files && ui.inputPublicar.files[0]);
   });
@@ -2733,11 +3098,70 @@ function enlazarEventos() {
     procesarFoto(ui.inputImagen.files && ui.inputImagen.files[0]);
   });
 
+  /* --- Apariencia del sitio --- */
+  ui.btnApariencia.addEventListener('click', () => alternarApariencia(true));
+  ui.btnCerrarApariencia.addEventListener('click', () => alternarApariencia(false));
+  ui.btnAparienciaListo.addEventListener('click', () => alternarApariencia(false));
+  ui.modalApariencia.addEventListener('click', (e) => {
+    if (e.target === ui.modalApariencia) alternarApariencia(false);
+  });
+  ui.btnTemaRestablecer.addEventListener('click', restablecerTema);
+
+  const escucharColor = (el, campo) => {
+    el.addEventListener('input', () => cambiarTema(campo, el.value));
+  };
+  escucharColor(ui.temaAcento, 'acento');
+  escucharColor(ui.temaFondo, 'fondo');
+  escucharColor(ui.temaSuperficie, 'superficie');
+  escucharColor(ui.temaTexto, 'texto');
+  escucharColor(ui.temaPapel, 'papel');
+
+  ui.temaFuenteTitulos.addEventListener('change',
+    () => cambiarTema('titulos', ui.temaFuenteTitulos.value));
+  ui.temaFuenteTexto.addEventListener('change',
+    () => cambiarTema('textoFuente', ui.temaFuenteTexto.value));
+
+  ui.temaRadio.addEventListener('input', () => {
+    ui.temaRadioValor.textContent = ui.temaRadio.value + ' px';
+    cambiarTema('radio', ui.temaRadio.value);
+  });
+  ui.temaBorde.addEventListener('input', () => {
+    ui.temaBordeValor.textContent = ui.temaBorde.value + ' px';
+    cambiarTema('borde', ui.temaBorde.value);
+  });
+  ui.temaCinta.addEventListener('change',
+    () => cambiarTema('cinta', ui.temaCinta.checked));
+
+  /* --- Vista previa de la biblioteca --- */
+  ui.btnCerrarPrevia.addEventListener('click', cerrarVistaPrevia);
+  ui.modalVistaPrevia.addEventListener('click', (e) => {
+    if (e.target === ui.modalVistaPrevia) cerrarVistaPrevia();
+  });
+  ui.previaPortada.addEventListener('error', () => {
+    ui.previaPortada.hidden = true;
+    ui.previaSinPortada.hidden = false;
+  });
+  ui.btnLeerPrevia.addEventListener('click', () => {
+    const pub = pubPrevia;
+    cerrarVistaPrevia();
+    if (pub) abrirPublicacion(pub);
+  });
+  ui.btnDescargarPrevia.addEventListener('click', () => {
+    if (pubPrevia) descargarPublicacion(pubPrevia);
+  });
+
   document.addEventListener('input', (e) => {
     onInputCapa(e);
     onInputEditable(e);
   });
   document.addEventListener('paste', onPasteEditable);
+  // En edición, un texto editable dentro de un enlace no debe navegar.
+  document.addEventListener('click', (e) => {
+    if (!estado.modoEdicionSitio || !e.target.closest) return;
+    if (e.target.closest('[data-editable]') && e.target.closest('a')) {
+      e.preventDefault();
+    }
+  }, true);
   document.addEventListener('click', onClicEnlace);
   document.addEventListener('click', (e) => {
     const btn = e.target.closest && e.target.closest('.foto__cambiar');
@@ -2810,6 +3234,20 @@ function enlazarEventos() {
 
   /* --- Teclado global --- */
   document.addEventListener('keydown', (e) => {
+    // Los diálogos nuevos atrapan el foco y se cierran con Escape.
+    const dialogoAbierto = !ui.modalVistaPrevia.classList.contains('oculto')
+      ? ui.modalVistaPrevia
+      : (!ui.modalApariencia.classList.contains('oculto') ? ui.modalApariencia : null);
+    if (dialogoAbierto) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (dialogoAbierto === ui.modalVistaPrevia) cerrarVistaPrevia();
+        else alternarApariencia(false);
+        return;
+      }
+      if (e.key === 'Tab') { trampaFoco(dialogoAbierto, e); return; }
+    }
+
     const destino = e.target;
     const escribiendo = destino && destino.matches &&
       destino.matches('input, textarea, [contenteditable="true"]');
@@ -2908,6 +3346,7 @@ async function iniciar() {
 
   capturarOriginales();
   cargarSitio();
+  aplicarTema();
   aplicarEdicionesSitio();
 
   await cargarCatalogo();
@@ -2923,6 +3362,7 @@ async function iniciar() {
 
   // Base publicada del proyecto (si assets/ediciones.json existe)
   cargarEdicionesPublicadas().then(() => {
+    aplicarTema();
     aplicarEdicionesSitio();
     if (estado.modoEdicionSitio) inyectarBotonesBloque();
   });

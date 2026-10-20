@@ -23,9 +23,9 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" async></script>
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" async></script>
-  <script src="app.js?v=12" defer></script>
+  <script src="app.js?v=13" defer></script>
 
-  <link rel="stylesheet" href="styles.css?v=16">
+  <link rel="stylesheet" href="styles.css?v=17">
 </head>
 
 <body class="vista-biblioteca">
@@ -42,7 +42,7 @@
           <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H12v18h5.5a2.5 2.5 0 0 0 2.5-2.5v-13Z"/>
         </svg>
       </span>
-      <span class="marca__texto">Noti‑Misión<em data-editable="marca.lema">JUMISMAC</em></span>
+      <span class="marca__texto"><span data-editable="marca.nombre">Noti‑Misión</span><em data-editable="marca.lema">JUMISMAC</em></span>
     </div>
 
     <button id="btnMenu" class="boton boton--icono menu-toggle" type="button"
@@ -51,13 +51,13 @@
     </button>
 
     <nav class="menu" id="menuSitio" aria-label="Secciones del sitio">
-      <a href="#/inicio"       data-ruta="inicio">Inicio</a>
-      <a href="#/testimonios"  data-ruta="testimonios">Testimonios</a>
-      <a href="#/misiones"     data-ruta="misiones">Nuestras misiones</a>
-      <a href="#/extension"    data-ruta="extension">Extensión</a>
-      <a href="#/consejos"     data-ruta="consejos">Consejos</a>
-      <a href="#/informacion"  data-ruta="informacion">Información</a>
-      <a href="#/biblioteca"   data-ruta="biblioteca" class="menu__biblioteca">Biblioteca</a>
+      <a href="#/inicio"       data-ruta="inicio"><span data-editable="menu.inicio">Inicio</span></a>
+      <a href="#/testimonios"  data-ruta="testimonios"><span data-editable="menu.testimonios">Testimonios</span></a>
+      <a href="#/misiones"     data-ruta="misiones"><span data-editable="menu.misiones">Nuestras misiones</span></a>
+      <a href="#/extension"    data-ruta="extension"><span data-editable="menu.extension">Extensión</span></a>
+      <a href="#/consejos"     data-ruta="consejos"><span data-editable="menu.consejos">Consejos</span></a>
+      <a href="#/informacion"  data-ruta="informacion"><span data-editable="menu.informacion">Información</span></a>
+      <a href="#/biblioteca"   data-ruta="biblioteca" class="menu__biblioteca"><span data-editable="menu.biblioteca">Biblioteca</span></a>
     </nav>
 
     <div class="acciones">
@@ -71,8 +71,8 @@
 
   <!-- Cinta de identidad: el golpe de amarillo que abre el sitio -->
   <div class="cinta" id="cintaSitio">
-    <span class="cinta__largo">JUMISMAC <strong>✦</strong> Juventud Misionera Madre Cabrini <strong>✦</strong> Caracas, Venezuela</span>
-    <span class="cinta__corto">JUMISMAC <strong>✦</strong> Caracas</span>
+    <span class="cinta__largo" data-editable="cinta.largo">JUMISMAC <strong>✦</strong> Juventud Misionera Madre Cabrini <strong>✦</strong> Caracas, Venezuela</span>
+    <span class="cinta__corto" data-editable="cinta.corto">JUMISMAC <strong>✦</strong> Caracas</span>
   </div>
 
   <!-- =========================================================
@@ -999,8 +999,8 @@
         <p class="epigrafe" id="contarRevistas">Cargando…</p>
         <h2 data-editable="biblioteca.titulo">Nuestra biblioteca</h2>
         <p class="biblioteca__lema texto-guia" data-editable="biblioteca.lema">
-          Elige una portada para hojearla a pantalla completa, o publica un
-          PDF propio para que aparezca aquí ordenado con el resto.
+          Elige una portada para hojearla, abre «Vista previa» para conocer la
+          edición o descarga el PDF. También puedes publicar uno propio.
         </p>
         <div class="chips" id="chipsCategorias" role="tablist" aria-label="Filtrar por categoría"></div>
       </section>
@@ -1008,8 +1008,15 @@
       <div class="estanteria" id="estanteria"><!-- fichas generadas por app.js --></div>
 
       <div class="biblioteca__vacio" id="bibliotecaVacia" hidden>
-        <p class="biblioteca__vacio-texto">Ninguna revista coincide con tu búsqueda.</p>
-        <button class="boton" type="button" id="btnVerTodas">Ver todas</button>
+        <p class="biblioteca__vacio-texto" id="bibliotecaVacioTexto">
+          La biblioteca está vacía. Publica la primera revista para empezar.
+        </p>
+        <div class="biblioteca__vacio-acciones">
+          <button class="boton boton--acento" type="button" id="btnPublicarVacio">
+            Publicar la primera
+          </button>
+          <button class="boton" type="button" id="btnVerTodas">Ver todas</button>
+        </div>
       </div>
     </section>
   </main>
@@ -1028,12 +1035,16 @@
     <p class="barra-edicion__ayuda" id="ayudaEdicion">
       Pulsa cualquier <strong>texto</strong> para escribir; en las
       <strong>fotos</strong>, usa «Cambiar foto»; el ✕ de cada bloque lo oculta.
-      Todo se guarda en este navegador.
+      En <strong>Apariencia</strong> cambias colores, letras y formas. Todo se
+      guarda en este navegador.
     </p>
     <div class="barra-edicion__botones">
       <button id="btnAgregarBloque" class="boton boton--acento" type="button"
               aria-haspopup="dialog"
               title="Añadir un bloque nuevo con un diseño ya preparado">Agregar bloque</button>
+      <button id="btnApariencia" class="boton boton--suave" type="button"
+              aria-haspopup="dialog"
+              title="Cambiar colores, tipografías y formas del sitio">Apariencia</button>
       <button id="btnDescargarCambios" class="boton boton--suave" type="button"
               title="Guardar una copia de los cambios en un archivo">Descargar cambios</button>
       <button id="btnImportarCambios" class="boton boton--suave" type="button"
@@ -1251,6 +1262,150 @@
         <button class="boton boton--acento" type="submit" id="btnEntrarClave">Entrar</button>
       </div>
     </form>
+  </div>
+
+  <!-- Overlay: apariencia del sitio (colores, tipografías y formas) -->
+  <div class="overlay oculto" id="modalApariencia" role="dialog"
+       aria-modal="true" aria-labelledby="aparienciaTitulo">
+    <div class="overlay__caja apariencia">
+      <header class="apariencia__cabecera">
+        <div>
+          <p class="epigrafe">Personalización</p>
+          <h2 id="aparienciaTitulo">Apariencia del sitio</h2>
+          <p class="apariencia__ayuda">
+            Los cambios se aplican en vivo y se guardan en este navegador.
+            También viajan dentro de «Descargar cambios».
+          </p>
+        </div>
+        <button id="btnCerrarApariencia" class="boton boton--icono" type="button"
+                aria-label="Cerrar la apariencia">
+          <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </header>
+
+      <section class="apariencia__grupo" aria-labelledby="aparienciaColores">
+        <h3 id="aparienciaColores">Colores</h3>
+        <div class="apariencia__colores">
+          <label class="apariencia__campo" for="temaAcento">
+            <span>Color principal</span>
+            <input type="color" id="temaAcento" value="#ffd43b">
+          </label>
+          <label class="apariencia__campo" for="temaFondo">
+            <span>Fondo</span>
+            <input type="color" id="temaFondo" value="#080f13">
+          </label>
+          <label class="apariencia__campo" for="temaSuperficie">
+            <span>Tarjetas</span>
+            <input type="color" id="temaSuperficie" value="#101b21">
+          </label>
+          <label class="apariencia__campo" for="temaTexto">
+            <span>Texto</span>
+            <input type="color" id="temaTexto" value="#f7f8f3">
+          </label>
+          <label class="apariencia__campo" for="temaPapel">
+            <span>Papel claro</span>
+            <input type="color" id="temaPapel" value="#fffaf0">
+          </label>
+        </div>
+        <p class="apariencia__aviso" id="temaContraste" role="status" hidden></p>
+      </section>
+
+      <section class="apariencia__grupo" aria-labelledby="aparienciaLetras">
+        <h3 id="aparienciaLetras">Tipografías</h3>
+        <div class="apariencia__dos">
+          <label class="apariencia__campo" for="temaFuenteTitulos">
+            <span>Titulares</span>
+            <select id="temaFuenteTitulos">
+              <option value="fraunces">Fraunces (editorial)</option>
+              <option value="georgia">Georgia (clásica)</option>
+              <option value="archivo">Archivo (moderna)</option>
+              <option value="sistema">Sistema</option>
+              <option value="mono">Monoespaciada</option>
+            </select>
+          </label>
+          <label class="apariencia__campo" for="temaFuenteTexto">
+            <span>Texto corrido</span>
+            <select id="temaFuenteTexto">
+              <option value="archivo">Archivo (moderna)</option>
+              <option value="sistema">Sistema</option>
+              <option value="georgia">Georgia (clásica)</option>
+              <option value="mono">Monoespaciada</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="apariencia__grupo" aria-labelledby="aparienciaForma">
+        <h3 id="aparienciaForma">Forma</h3>
+        <div class="apariencia__dos">
+          <label class="apariencia__campo apariencia__rango" for="temaRadio">
+            <span>Esquinas de tarjetas <output id="temaRadioValor" for="temaRadio">4 px</output></span>
+            <input type="range" id="temaRadio" min="0" max="18" step="1" value="4">
+          </label>
+          <label class="apariencia__campo apariencia__rango" for="temaBorde">
+            <span>Borde superior <output id="temaBordeValor" for="temaBorde">4 px</output></span>
+            <input type="range" id="temaBorde" min="0" max="8" step="1" value="4">
+          </label>
+        </div>
+        <label class="apariencia__check" for="temaCinta">
+          <input type="checkbox" id="temaCinta" checked>
+          <span>Mostrar la cinta de identidad</span>
+        </label>
+      </section>
+
+      <footer class="apariencia__acciones">
+        <button id="btnTemaRestablecer" class="boton boton--suave" type="button">
+          Restablecer apariencia
+        </button>
+        <button id="btnAparienciaListo" class="boton boton--acento" type="button">Listo</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Overlay: vista previa de una revista antes de leerla o descargarla -->
+  <div class="overlay oculto" id="modalVistaPrevia" role="dialog"
+       aria-modal="true" aria-labelledby="previaTitulo">
+    <div class="overlay__caja vista-previa">
+      <button id="btnCerrarPrevia" class="boton boton--icono vista-previa__cerrar"
+              type="button" aria-label="Cerrar la vista previa">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+
+      <div class="vista-previa__media">
+        <img id="previaPortada" class="vista-previa__portada" alt="" hidden
+             decoding="async">
+        <div id="previaSinPortada" class="vista-previa__sin-portada">
+          <svg viewBox="0 0 24 24" class="icono" aria-hidden="true">
+            <path d="M4 19.5V6a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Z"/>
+            <path d="M8 7h6"/><path d="M8 11h6"/>
+          </svg>
+          <span>Sin portada</span>
+        </div>
+      </div>
+
+      <div class="vista-previa__datos">
+        <p class="epigrafe" id="previaCategoria"></p>
+        <h2 id="previaTitulo">Revista</h2>
+        <p class="vista-previa__meta" id="previaMeta"></p>
+        <p class="texto-guia" id="previaDescripcion"></p>
+        <div class="vista-previa__acciones">
+          <button id="btnLeerPrevia" class="boton boton--acento" type="button">
+            Leer ahora
+          </button>
+          <button id="btnDescargarPrevia" class="boton boton--suave" type="button">
+            <svg viewBox="0 0 24 24" class="icono" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>
+            </svg>
+            Descargar PDF
+          </button>
+        </div>
+        <p class="nota">
+          La descarga entrega el PDF original. Los textos añadidos encima de las
+          páginas se exportan desde el lector.
+        </p>
+      </div>
+    </div>
   </div>
 
   <!-- =========================================================

@@ -37,6 +37,9 @@
   --crema: #fffaf0;           /* tarjetas claras de contraste */
   --crema-2: #f6edd6;
   --tinta: #14120c;           /* texto sobre amarillo o crema */
+  --texto-acento-2: #4a3c0b;  /* texto secundario sobre el acento */
+  --texto-papel: #2a261c;     /* texto sobre la tarjeta de papel */
+  --texto-papel-2: #6f6857;
   --peligro: #ff6b5e;
 
   --foco: #8fc7ff;            /* anillo de foco (teclado) */
@@ -50,6 +53,8 @@
   /* Formas y sombras */
   --radio: 12px;
   --radio-lg: 18px;
+  --radio-tarjeta: 4px;
+  --borde-tarjeta: 4px;
   --sombra-libro: 0 18px 45px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
   --curva: cubic-bezier(0.22, 0.68, 0.32, 1);
   /* Curvas fuertes (Emil Kowalski): el ease-out da respuesta inmediata;
@@ -2787,3 +2792,388 @@ body {
 }
 
 
+
+/* ========================================================================
+   24. APARIENCIA PERSONALIZABLE Y VISTA PREVIA DE LA BIBLIOTECA
+   El tema se aplica con variables en <html>; esta capa hace que los
+   componentes respeten esas variables y añade los dos diálogos nuevos.
+   ======================================================================== */
+
+/* --- La cabecera y los remates siguen el fondo elegido --- */
+.barra--sitio {
+  background: color-mix(in srgb, var(--fondo) 92%, transparent);
+}
+
+.marca__logo {
+  box-shadow: 0 5px 18px color-mix(in srgb, var(--acento) 28%, transparent);
+}
+
+.menu a:hover {
+  background: color-mix(in srgb, var(--acento) 9%, transparent);
+}
+
+.menu a[aria-current="page"] {
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--acento) 22%, transparent);
+}
+
+.menu__biblioteca {
+  border-color: color-mix(in srgb, var(--acento) 55%, transparent);
+}
+
+/* --- Tarjetas: la forma y el borde son parte del tema --- */
+.bloque,
+.testimonio {
+  border-radius: var(--radio-tarjeta);
+  border-top-width: var(--borde-tarjeta);
+  border-top-color: var(--acento);
+}
+
+.bloque--claro,
+.testimonio--claro {
+  background: var(--crema);
+  border-color: color-mix(in srgb, var(--crema) 72%, var(--texto-papel));
+  border-top-color: color-mix(in srgb, var(--acento) 62%, var(--texto-papel));
+}
+
+.bloque--claro h2,
+.testimonio--claro blockquote {
+  color: var(--texto-papel);
+}
+
+.bloque--claro .texto-guia,
+.bloque--claro .lista-puntos,
+.testimonio--claro .texto-guia {
+  color: var(--texto-papel-2);
+}
+
+.bloque--claro .texto-guia strong,
+.bloque--claro .lista-puntos strong {
+  color: var(--texto-papel);
+}
+
+.bloque--claro .lista-puntos li::marker {
+  color: color-mix(in srgb, var(--acento) 70%, var(--texto-papel));
+}
+
+.bloque--claro::after,
+.testimonio--claro::after {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--acento) 85%, var(--texto-papel)),
+    transparent);
+}
+
+.testimonio--claro .testimonio__autor {
+  color: var(--texto-papel-2);
+}
+
+.testimonio--claro blockquote::before {
+  color: color-mix(in srgb, var(--acento) 65%, var(--texto-papel));
+}
+
+/* --- CTA principal: texto legible sobre cualquier acento --- */
+.llamada--testimonios {
+  border-radius: var(--radio-tarjeta);
+  color: var(--tinta);
+}
+
+.llamada--testimonios::after {
+  color: color-mix(in srgb, var(--tinta) 10%, transparent);
+}
+
+.llamada--testimonios .texto-guia {
+  color: var(--texto-acento-2);
+}
+
+.llamada--testimonios .epigrafe {
+  color: var(--texto-acento-2);
+}
+
+/* --- La cinta se puede ocultar desde Apariencia --- */
+.sin-cinta .cinta { display: none; }
+
+/* --- Estado vacío de la biblioteca --- */
+.biblioteca__vacio-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* --- Acciones rápidas de cada ficha --- */
+.ficha__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.ficha__accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--texto-2);
+  font: 600 0.7rem/1 var(--fuente-texto);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.ficha__accion .icono {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.ficha__accion:hover {
+  border-color: var(--acento);
+  color: var(--acento);
+  background: color-mix(in srgb, var(--acento) 7%, transparent);
+}
+
+.ficha__accion:active {
+  transform: translateY(1px);
+}
+
+/* --- Panel de apariencia --- */
+.apariencia {
+  width: 100%;
+  max-width: 720px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  text-align: left;
+  padding: 28px;
+}
+
+.apariencia__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.apariencia__cabecera h2 {
+  font: 600 1.65rem/1.1 var(--fuente-display);
+  margin: 4px 0 8px;
+}
+
+.apariencia__ayuda {
+  max-width: 52ch;
+  color: var(--texto-2);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.apariencia__grupo {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--borde);
+}
+
+.apariencia__grupo h3 {
+  margin-bottom: 12px;
+  font: 600 0.92rem var(--fuente-display);
+}
+
+.apariencia__colores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.apariencia__dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.apariencia__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--texto-2);
+  font: 600 0.76rem var(--fuente-texto);
+}
+
+.apariencia__campo input[type="color"] {
+  width: 100%;
+  height: 42px;
+  padding: 3px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie-2);
+  cursor: pointer;
+}
+
+.apariencia__campo select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: 500 0.86rem var(--fuente-texto);
+}
+
+.apariencia__rango input[type="range"] {
+  width: 100%;
+  accent-color: var(--acento);
+  cursor: pointer;
+}
+
+.apariencia__rango output {
+  float: right;
+  color: var(--acento);
+  font-variant-numeric: tabular-nums;
+}
+
+.apariencia__check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  color: var(--texto-2);
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.apariencia__check input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--acento);
+}
+
+.apariencia__aviso {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border-left: 3px solid var(--peligro);
+  background: color-mix(in srgb, var(--peligro) 10%, transparent);
+  color: var(--texto);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.apariencia__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+/* --- Vista previa de una revista --- */
+.vista-previa {
+  position: relative;
+  width: 100%;
+  max-width: 820px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 30px;
+  align-items: start;
+  text-align: left;
+  padding: 30px;
+}
+
+.vista-previa__cerrar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+.vista-previa__media {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie-2);
+}
+
+.vista-previa__portada {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vista-previa__sin-portada {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  color: var(--texto-3);
+  font-size: 0.78rem;
+}
+
+.vista-previa__sin-portada .icono {
+  width: 34px;
+  height: 34px;
+}
+
+.vista-previa__datos {
+  padding-right: 26px;
+}
+
+.vista-previa__datos h2 {
+  margin: 5px 0 6px;
+  font: 600 clamp(1.7rem, 4vw, 2.4rem)/1.05 var(--fuente-display);
+  letter-spacing: -0.02em;
+}
+
+.vista-previa__meta {
+  margin-bottom: 15px;
+  color: var(--texto-3);
+  font-size: 0.8rem;
+}
+
+.vista-previa__datos .texto-guia {
+  color: var(--texto-2);
+}
+
+.vista-previa__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 16px;
+}
+
+.vista-previa__datos .nota {
+  padding-top: 13px;
+  border-top: 1px solid var(--borde);
+}
+
+/* --- Ajustes para pantallas estrechas --- */
+@media (max-width: 720px) {
+  .overlay { padding: 14px; }
+
+  .apariencia {
+    max-height: calc(100vh - 28px);
+    padding: 22px 18px;
+  }
+
+  .apariencia__dos { grid-template-columns: 1fr; }
+
+  .vista-previa {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    max-height: calc(100vh - 28px);
+    padding: 24px 18px;
+  }
+
+  .vista-previa__media {
+    width: min(190px, 62vw);
+    margin: 0 auto;
+  }
+
+  .vista-previa__datos { padding-right: 0; }
+  .vista-previa__cerrar { top: 8px; right: 8px; }
+  .vista-previa__acciones .boton { flex: 1 1 145px; }
+}

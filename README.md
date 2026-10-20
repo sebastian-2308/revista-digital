@@ -144,9 +144,9 @@ python -m http.server        # o: npx serve
 # abre http://localhost:8000
 ```
 
-Si abres `index.html` con doble clic, la app lo detecta: la estantería usa el
-catálogo incluido y te ofrece **elegir el PDF a mano** para leerlo en la
-sesión.
+Si abres `index.html` con doble clic, la app lo detecta: la estantería nace
+vacía (sin revistas de ejemplo) y te ofrece **elegir el PDF a mano** para
+leerlo en la sesión.
 
 ## Estructura
 
@@ -156,14 +156,14 @@ revista-digital/
 ├── styles.css                 Estética editorial oscura, responsive, accesible
 ├── app.js                     Toda la lógica (sitio, editores, biblioteca, flipbook)
 └── assets/
-    ├── revistas.json          Catálogo de la estantería (título, categoría, PDF…)
-    ├── revista.pdf            Horizontes N.º 01 — Diseño (10 páginas)
-    ├── revista-orbita.pdf     Órbita N.º 07 — Ciencia (6 páginas)
-    ├── revista-taller.pdf     Taller N.º 12 — Oficios (6 páginas)
-    ├── covers/                Portadas de la estantería (JPEG)
+    ├── revistas.json          Catálogo de la estantería (vacío por defecto)
     ├── pagina.mp3             Sonido de paso de página
     └── LEEME.txt              Notas sobre los assets
 ```
+
+La biblioteca arranca sin revistas de ejemplo. Las publicaciones se crean
+desde la propia interfaz y quedan guardadas en el navegador; el catálogo de
+`assets/` solo se usa si quieres publicar ediciones fijas para todo el mundo.
 
 ## Biblioteca de revistas
 
@@ -178,11 +178,19 @@ revista-digital/
   miniaturas, pantalla completa y atajos de teclado.
 - **Panel de ficha**: descripción editable (se guarda sola, por revista) y
   datos del archivo.
+- **Vista previa y descarga**: cada ficha ofrece «Vista previa» (portada,
+  categoría, páginas, descripción) y «Descargar» para bajar el PDF original
+  sin abrir el lector.
+- **Biblioteca vacía**: si aún no hay ediciones, se muestra un estado con la
+  acción «Publicar la primera» y se ocultan los filtros que no aportan nada.
 
 ## Añadir o quitar revistas del catálogo
 
-1. Pon el PDF en `assets/` y una portada en `assets/covers/`.
-2. Añade una entrada en `assets/revistas.json`:
+La biblioteca ya no incluye las tres revistas de demostración. Para publicar
+una edición fija para todo el mundo:
+
+1. Pon el PDF en `assets/` y, si quieres, una portada en `assets/covers/`.
+2. Añade una entrada al array de `assets/revistas.json`:
 
 ```json
 {
@@ -233,10 +241,25 @@ quedarse en «Cargando…».
 
 ## Personalización
 
-Los ajustes viven como constantes al principio de `app.js`: rutas de CDN y del
-sonido, secciones del sitio (`SECCIONES`), ancho máximo de rasterizado
-(`ANCHO_RASTER`), categoría de las publicaciones propias (`CATEGORIA_PROPIA`) y
-claves de `localStorage`.
+Además de editar textos, fotos y bloques desde **Configuración**, el botón
+**Apariencia** abre un panel para cambiar en vivo:
+
+- colores de acento, fondo, tarjetas, texto y papel claro;
+- tipografías de titulares y de texto corrido (Fraunces, Georgia, Archivo,
+  sistema o monoespaciada);
+- esquinas de las tarjetas, grosor del borde superior y visibilidad de la
+  cinta de identidad.
+
+El tema se guarda en `localStorage` (`revista:sitio`), viaja dentro de
+**Descargar cambios** / **Importar cambios** y se restablece solo con
+**Restablecer apariencia** (sin tocar textos ni fotos). La interfaz avisa si
+el acento o el texto pierden contraste con el fondo.
+
+Los ajustes técnicos viven como constantes al principio de `app.js`: rutas de
+CDN y del sonido, secciones del sitio (`SECCIONES`), ancho máximo de
+rasterizado (`ANCHO_RASTER`), categoría de las publicaciones propias
+(`CATEGORIA_PROPIA`), tema de fábrica (`TEMA_POR_DEFECTO`) y claves de
+`localStorage`.
 
 ## Tecnologías
 
@@ -247,12 +270,13 @@ claves de `localStorage`.
 
 ## Pruebas
 
-Suites jsdom (50 + 14 + 70 + 14 aserciones) que cubren estantería, filtros,
-apertura, navegación, panel, sonido, miniaturas, publicación, el modo
+Suites jsdom (50 + 15 + 70 + 14 + 26 aserciones) que cubren estantería,
+filtros, apertura, navegación, panel, sonido, miniaturas, publicación, el modo
 `file://`, las rutas del sitio, la contraseña de la configuración (diálogo,
 error y desbloqueo), el modo edición del sitio (con la galería de bloques
-predefinidos), el editor de capas sobre páginas, la resiliencia sin CDN y la
-exportación del PDF editado. Además, una comprobación visual con Chrome
-headless (45 aserciones) verifica números de sección, fuentes, trama de los
-huecos, ausencia de desbordes de 390 a 1440 px y el panel lateral de
+predefinidos), el editor de capas sobre páginas, la resiliencia sin CDN, la
+exportación del PDF editado, la biblioteca vacía, el panel de apariencia y la
+vista previa/descarga de la biblioteca. Además, una comprobación visual con
+Chrome headless (45 aserciones) verifica números de sección, fuentes, trama
+de los huecos, ausencia de desbordes de 390 a 1440 px y el panel lateral de
 edición.

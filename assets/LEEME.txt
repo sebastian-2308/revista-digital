@@ -4,50 +4,22 @@ BIBLIOTECA · REVISTAS DIGITALES  (assets/)
 Aquí vive el contenido de la estantería:
 
 1) revistas.json  (catálogo)
-   Lista las revistas que aparecen en la biblioteca: título, número,
-   categoría, fecha, nº de páginas, descripción, y las rutas del PDF
-   y de la portada. Para añadir una revista: copia su PDF y su portada
-   aquí y añade una entrada más al JSON.
+   Lista las revistas fijas que aparecen en la biblioteca: título, número,
+   categoría, fecha, nº de páginas, descripción, y las rutas del PDF y de la
+   portada. La biblioteca nace vacía: las ediciones se publican desde la
+   propia aplicación y se guardan en el navegador. Para añadir una revista
+   fija para todo el mundo, copia su PDF (y su portada, si quieres) aquí y
+   añade una entrada al array del JSON.
 
-2) revista.pdf / revista-orbita.pdf / revista-taller.pdf
-   Las tres revistas de ejemplo, dibujadas píxel a píxel:
-   · Horizontes N.º 01 — Diseño y cultura (10 páginas)
-   · Órbita    N.º 07 — Ciencia y sociedad (6 páginas)
-   · Taller    N.º 12 — Oficios y materia (6 páginas)
-   Cada una tiene su portada en covers/ para la estantería.
-
-3) pagina.mp3  (opcional)
+2) pagina.mp3  (opcional)
    Sonido realista de paso de página. Puedes sustituirlo por el tuyo
    con el mismo nombre (o cambiar la ruta en la constante
    RUTA_SONIDO de app.js).
 
 Además, desde la propia aplicación puedes PUBLICAR cualquier PDF
-(botón «Publicar revista» o arrastrándolo a la ventana): se le genera
-portada automáticamente y se guarda en tu navegador (IndexedDB), sin
-tocar estos archivos.
+(botón «Publicar revista» o arrastrándolo a la ventana): se le genera la
+portada automáticamente y queda guardado en IndexedDB. Cada ficha permite
+ver una vista previa o descargar el PDF original.
 
-
-CÓMO EJECUTARLO
-----------------------------------------------------------------
-Opción A (recomendada): servidor local, desde la carpeta del proyecto
-    python -m http.server        ->  http://localhost:8000
-    npx serve                    ->  (te indica la dirección)
-
-Opción B: doble clic en index.html (protocolo file://)
-    Funciona, pero el navegador bloquea la lectura automática de
-    assets/ por seguridad. En ese caso la estantería usa el catálogo
-    incluido en app.js y, al abrir una revista, aparece un panel con
-    la opción de elegir el PDF a mano.
-
-
-NOTAS TÉCNICAS
-----------------------------------------------------------------
-· PDF.js (Mozilla) rasteriza cada página del PDF a una imagen.
-  El renderizado es progresivo y por prioridades: primero la página
-  que estás viendo, así nunca ves un hueco al hojear.
-· StPageFlip (page-flip) se encarga de la animación 3D del pliegue,
-  el arrastre con ratón y el deslizamiento con el dedo.
-· La descripción de cada revista es editable en el panel de
-  información y se guarda en tu navegador (localStorage), por revista.
-· Las publicaciones propias se guardan en IndexedDB; si el navegador
-  no la permite (algunos file://), duran solo la sesión.
+La apariencia del sitio (colores, tipografías y formas) se edita desde
+Configuración → Apariencia y se guarda junto con los textos y las fotos.
