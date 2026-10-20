@@ -23,9 +23,9 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" async></script>
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" async></script>
-  <script src="app.js?v=13" defer></script>
+  <script src="app.js?v=14" defer></script>
 
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=18">
 </head>
 
 <body class="vista-biblioteca">
@@ -1387,7 +1387,11 @@
         <p class="epigrafe" id="previaCategoria"></p>
         <h2 id="previaTitulo">Revista</h2>
         <p class="vista-previa__meta" id="previaMeta"></p>
-        <p class="texto-guia" id="previaDescripcion"></p>
+        <p class="texto-guia vista-previa__descripcion" id="previaDescripcion"
+           spellcheck="false"></p>
+        <p class="vista-previa__edicion" id="previaAyudaEdicion" hidden>
+          Modo edición: pulsa la descripción para cambiarla. Se guarda en este navegador.
+        </p>
         <div class="vista-previa__acciones">
           <button id="btnLeerPrevia" class="boton boton--acento" type="button">
             Leer ahora

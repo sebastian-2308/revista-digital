@@ -203,6 +203,7 @@ const ui = {
   previaTitulo: $('#previaTitulo'),
   previaMeta: $('#previaMeta'),
   previaDescripcion: $('#previaDescripcion'),
+  previaAyudaEdicion: $('#previaAyudaEdicion'),
   btnLeerPrevia: $('#btnLeerPrevia'),
   btnDescargarPrevia: $('#btnDescargarPrevia'),
   btnCerrarPrevia: $('#btnCerrarPrevia'),
@@ -1181,8 +1182,8 @@ function abrirVistaPrevia(pub) {
     pub.paginas ? pub.paginas + ' páginas' : null,
     pub.fecha ? formatearFecha(pub.fecha) : null
   ].filter(Boolean).join(' · ');
-  ui.previaDescripcion.textContent = pub.descripcion ||
-    'Una edición de la biblioteca de Noti‑Misión. Ábrela para hojearla o descarga el PDF original.';
+  ui.previaDescripcion.textContent = descripcionDePublicacion(pub);
+  actualizarEdicionDescripcionPrevia();
 
   if (pub.portada) {
     ui.previaPortada.src = pub.portada;
@@ -1202,11 +1203,51 @@ function abrirVistaPrevia(pub) {
 function cerrarVistaPrevia() {
   if (!ui.modalVistaPrevia) return;
   ui.modalVistaPrevia.classList.add('oculto');
+  ui.previaDescripcion.removeAttribute('contenteditable');
+  if (ui.previaAyudaEdicion) ui.previaAyudaEdicion.hidden = true;
   pubPrevia = null;
   if (focoAntesPrevia && typeof focoAntesPrevia.focus === 'function') {
     focoAntesPrevia.focus();
   }
   focoAntesPrevia = null;
+}
+
+/** Permite corregir la descripción desde la ficha cuando el sitio
+    está en modo edición. Se guarda por revista en este navegador. */
+function actualizarEdicionDescripcionPrevia() {
+  if (!ui.previaDescripcion) return;
+  const activo = estado.modoEdicionSitio && !!pubPrevia;
+  if (activo) {
+    ui.previaDescripcion.setAttribute('contenteditable', 'true');
+    ui.previaDescripcion.setAttribute('role', 'textbox');
+    ui.previaDescripcion.setAttribute('aria-multiline', 'true');
+    ui.previaDescripcion.setAttribute('aria-label',
+      'Descripción de la revista. Editable en este navegador.');
+  } else {
+    ui.previaDescripcion.removeAttribute('contenteditable');
+    ui.previaDescripcion.removeAttribute('role');
+    ui.previaDescripcion.removeAttribute('aria-multiline');
+    ui.previaDescripcion.removeAttribute('aria-label');
+  }
+  if (ui.previaAyudaEdicion) ui.previaAyudaEdicion.hidden = !activo;
+}
+
+let temporizadorGuardarDescripcionPrevia = null;
+
+function guardarDescripcionPrevia() {
+  if (!pubPrevia) return;
+  const pub = pubPrevia;
+  const clave = claveDescripcionDe(pub);
+  const texto = ui.previaDescripcion.textContent.trim();
+  clearTimeout(temporizadorGuardarDescripcionPrevia);
+  temporizadorGuardarDescripcionPrevia = setTimeout(() => {
+    try {
+      localStorage.setItem(clave, texto);
+    } catch {
+      // Sin almacenamiento, al menos se mantiene mientras la ficha esté abierta.
+      pub.descripcion = texto;
+    }
+  }, 400);
 }
 
 /** Nombre de archivo seguro (sin acentos ni signos raros). */
@@ -1410,7 +1451,12 @@ function actualizarNavegacion() {
   const total = estado.paginas.length;
   if (!total) return;
 
-  const p = limite(estado.flip.getCurrentPage(), 0, total - 1);
+  // StPageFlip 2.x expone getCurrentPageIndex(); algunas versiones antiguas
+  // (y los dobles de prueba) usan getCurrentPage(). Aceptamos ambas.
+  const pagina = typeof estado.flip.getCurrentPageIndex === 'function'
+    ? estado.flip.getCurrentPageIndex()
+    : estado.flip.getCurrentPage();
+  const p = limite(pagina, 0, total - 1);
   const retrato = estado.flip.getOrientation && estado.flip.getOrientation() === 'portrait';
 
   let texto;
@@ -1575,8 +1621,23 @@ function programarOcultarRaton() {
 
 /* ========================= 14. PANEL DE INFORMACIÓN ======================= */
 
+function claveDescripcionDe(pub) {
+  return CLAVE_DESCRIPCION + (pub && pub.id ? pub.id : 'archivo');
+}
+
 function claveDescripcionActual() {
-  return CLAVE_DESCRIPCION + (estado.pubAbierta ? estado.pubAbierta.id : 'archivo');
+  return claveDescripcionDe(estado.pubAbierta);
+}
+
+/** Devuelve la descripción editada de una revista o, si no hay,
+    la que trae la publicación. Se comparte entre lector y vista previa. */
+function descripcionDePublicacion(pub) {
+  let guardado = null;
+  try { guardado = localStorage.getItem(claveDescripcionDe(pub)); } catch { /* noop */ }
+  if (guardado) return guardado;
+  if (pub && pub.descripcion) return pub.descripcion;
+  return 'Una edición de la biblioteca de Noti‑Misión. Ábrela para hojearla ' +
+    'o descarga el PDF original.';
 }
 
 function descripcionPorDefecto() {
@@ -1991,6 +2052,7 @@ function alternarModoEdicionSitio(activo) {
     if (activo) el.contentEditable = 'true';
     else el.removeAttribute('contenteditable');
   });
+  actualizarEdicionDescripcionPrevia();
 
   if (activo) {
     if (estado.vista === 'lector') mostrarVista('biblioteca');
@@ -3148,6 +3210,14 @@ function enlazarEventos() {
   });
   ui.btnDescargarPrevia.addEventListener('click', () => {
     if (pubPrevia) descargarPublicacion(pubPrevia);
+  });
+  ui.previaDescripcion.addEventListener('input', guardarDescripcionPrevia);
+  ui.previaDescripcion.addEventListener('paste', (e) => {
+    if (!estado.modoEdicionSitio) return;
+    e.preventDefault();
+    const datos = e.clipboardData || window.clipboardData;
+    const texto = datos ? datos.getData('text/plain') : '';
+    document.execCommand('insertText', false, texto);
   });
 
   document.addEventListener('input', (e) => {
