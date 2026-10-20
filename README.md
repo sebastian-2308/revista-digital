@@ -22,21 +22,48 @@ cualquiera.
 ## Estética editorial (sin peso extra)
 
 - **Base de la web original**: fondo tinta `#080f13` y texto hueso, con un
-  **amarillo vivo** (`#ffd43b` → `#ffb703`) como protagonista en la cinta,
-  los números de sección, la navegación, el héroe y las llamadas.
-- **Tipografías variables** (Fraunces + Inter): una sola petición por familia y
-  el navegador descarga solo los subconjuntos que usa, en lugar de un archivo
-  por peso.
-- **Contraste editorial**: tarjeta crema para «¿Quiénes somos?» y para los
-  testimonios pares, como las superficies claras de la web original; el resto
-  de tarjetas siguen en tinta para que el amarillo respire.
-- **Detalles de revista solo con CSS**: cinta de identidad, numeración de
-  secciones (01–06), línea de cierre, foto del héroe con marco desplazado,
-  comillas decorativas y autor en versalitas en los testimonios, filo dorado en
-  las llamadas, trama y esquinas en los huecos de foto, y rombo en el pie.
+  **amarillo vivo** (`#ffd43b`) como campo protagonista en la cinta, la
+  navegación, el héroe, los folios y la llamada a testimonios.
+- **Tipografías variables** (Fraunces + Archivo): una sola petición por familia
+  y el navegador descarga solo los subconjuntos que usa. Fraunces lleva los
+  titulares; Archivo, el texto y la interfaz.
+- **Contraste editorial**: una banda crema a todo el ancho abre «¿Quiénes
+  somos?»; los testimonios pares y algunas tarjetas usan el mismo papel claro.
+  El resto sigue en tinta para que el amarillo respire.
+- **Detalles de revista solo con CSS**: cinta de identidad, folios grandes
+  (01–06), disco solar plano detrás de la foto del héroe, línea de cierre,
+  comillas decorativas y autor en versalitas, borde superior de 4 px en las
+  tarjetas, trama y esquinas en los huecos de foto, y rombo en el pie.
 - **Sin imágenes de adorno, iconos externos ni librerías de animación**: el
   acabado no añade peso y respeta `prefers-reduced-motion`. Las transiciones
-  son de 150–200 ms.
+  van de 180 a 280 ms.
+
+## Criterio de diseño (impeccable + taste-skill)
+
+Estas decisiones aplican lo aprendido en `pbakaus/impeccable` y
+`Leonxlnx/taste-skill`, sin romper la identidad del sitio ni los requisitos de
+edición:
+
+- **Fuera las fuentes por defecto**: Archivo sustituye a Inter; Fraunces sigue
+  siendo la voz de los titulares. La pareja tiene contraste real de carácter,
+  no dos sans genéricas.
+- **Un gesto fuerte por pantalla**: el disco solar plano del héroe, la banda
+  amarilla del testimonio y los folios grandes. El resto se queda quieto para
+  que esos momentos manden.
+- **Sin halos ni degradados de adorno**: fondo plano, sin radiales de color,
+  sin sombras amarillas en botones, sin cápsulas alrededor de los epígrafes.
+  La profundidad viene de las superficies y los bordes, no del brillo.
+- **Tarjetas como papel**: borde superior grueso, esquinas de 4 px y sin
+  levantar todas las tarjetas al pasar el ratón; el hover solo afirma el borde.
+- **Jerarquía antes que etiqueta**: los números de sección son folios de
+  revista, no micro-etiquetas en mayúsculas con tracking. Los epígrafes van en
+  caja baja y a tamaño de lectura.
+- **La retícula cambia según el contenido**: en Inicio la banda crema ocupa
+  todo el ancho y las dos tarjetas oscuras se reparten debajo; la biblioteca
+  pone buscador y «Publicar» en una sola línea.
+- **Las fotos siguen siendo huecos a propósito**: no se copiaron imágenes del
+  sitio original; el equipo las sustituye desde «Cambiar foto». El hueco tiene
+  trama y esquinas para leerse como espacio editorial, no como un error.
 
 ## Movimiento y tacto (oficio de Emil Kowalski)
 

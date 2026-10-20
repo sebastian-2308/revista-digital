@@ -2021,7 +2021,7 @@ function restablecerSitio() {
 
 const FUENTES_CAPA = {
   serif: '"Fraunces", Georgia, "Times New Roman", serif',
-  sans: '"Inter", system-ui, Arial, sans-serif',
+  sans: '"Archivo", system-ui, Arial, sans-serif',
   mono: 'ui-monospace, "Cascadia Mono", Consolas, monospace'
 };
 
