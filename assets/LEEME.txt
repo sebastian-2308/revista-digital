@@ -19,7 +19,10 @@ Aquí vive el contenido de la estantería:
 Además, desde la propia aplicación puedes PUBLICAR cualquier PDF
 (botón «Publicar revista» o arrastrándolo a la ventana): se le genera la
 portada automáticamente y queda guardado en IndexedDB. Cada ficha permite
-ver una vista previa o descargar el PDF original.
+ver una vista previa (con una muestra corta de las primeras páginas) o
+descargar el PDF original.
 
 La apariencia del sitio (colores, tipografías y formas) se edita desde
 Configuración → Apariencia y se guarda junto con los textos y las fotos.
+El botón «Guardar» de la barra de edición publica esos cambios en el
+almacén compartido (Cloudflare KV) para que se vean en otros dispositivos.

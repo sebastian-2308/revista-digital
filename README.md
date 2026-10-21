@@ -3,9 +3,10 @@
 Sitio completo del grupo juvenil **Noti‑Misión (JUMISMAC)** con biblioteca de
 revistas digitales: secciones navegables, configuración del sitio protegida
 con contraseña para el equipo y un lector flipbook con efecto 3D de paso de
-página. Tres archivos principales
-(`index.html`, `styles.css`, `app.js`), sin build ni dependencias locales: se
-abre y funciona.
+página. La interfaz vive en tres archivos principales (`index.html`,
+`styles.css`, `app.js`) y el guardado compartido en una pequeña API
+(`functions/api/sitio.js`); sin build ni dependencias locales: se abre y
+funciona.
 
 > El sitio se entrega con **el contenido del grupo ya escrito** —Inicio,
 > Testimonios, Nuestras misiones, Extensión, Consejos e Información— y
@@ -105,13 +106,13 @@ Estos detalles siguen los principios de `emilkowalski/skills`:
 - **Bloques**: ✕ en cada bloque original para ocultarlo; «Mostrar bloques
   ocultos» lo recupera.
 - **Enlaces**: en modo edición, un clic sobre un enlace pide la nueva URL.
-- **Persistencia**: todo se guarda en el navegador (`localStorage`). Para
-  llevar los cambios a otro navegador o publicarlos: **Descargar cambios**
-  (JSON) → **Importar cambios**. «Restablecer» (dos toques) vuelve al
-  contenido original y elimina los bloques agregados.
-- **Publicación opcional**: si se crea `assets/ediciones.json` con la misma
-  forma del JSON descargado, se sirve como contenido base para todos los
-  visitantes (los cambios locales tienen prioridad).
+- **Persistencia**: los cambios se guardan en el navegador (`localStorage`)
+  mientras editas. El botón **Guardar** de la barra los publica en el almacén
+  compartido (Cloudflare KV) para que se vean en otros navegadores y
+  dispositivos. **Descargar cambios** / **Importar cambios** siguen disponibles
+  como copia JSON. «Restablecer» (dos toques) vuelve al contenido original y
+  elimina los bloques agregados; después hay que pulsar **Guardar** para
+  aplicarlo en línea.
 - **Contraseña**: el botón «Configuración» pide la contraseña antes de abrir
   el editor; solo se pide una vez por visita (se olvida al recargar). En el
   código solo se guarda su huella (FNV‑1a), nunca la contraseña en texto
@@ -119,19 +120,15 @@ Estos detalles siguen los principios de `emilkowalski/skills`:
   `__interno.calcularHuella('nueva-clave')` y pon el resultado en
   `HUELLA_CLAVE_SITIO` (`app.js`).
   > Nota: en un sitio estático la contraseña evita entradas accidentales al
-  > editor; no sustituye a la seguridad de un servidor.
+  > editor; no sustituye a la seguridad de un servidor. La API de guardado
+  > comprueba esa misma huella para evitar escrituras anónimas.
 
-### 2. Editor de texto sobre las páginas (botón «Editar texto» / tecla `E`)
+### 2. Descripciones de las revistas
 
-Dentro del lector, sobre cualquier revista abierta:
-
-- Un **clic sobre una página** añade un texto (título, nota, pie…).
-- **Arrastr** para colocarlo; la barra superior da fuente, tamaño, color,
-  negrita, cursiva y centrado.
-- Duplicar, deshacer (`Ctrl+Z`), borrar (`Supr`) o salir (`E` / `Esc`).
-- Los textos se guardan **por revista** en el navegador.
-- **PDF editado**: exporta la revista con los textos ya escritos encima
-  (compone página + textos en un PDF descargable, sin librerías externas).
+La descripción de cada edición se puede corregir desde el botón de
+información del lector o directamente en la vista previa cuando el sitio está
+en modo edición. Se guarda con el resto del contenido y se sincroniza al
+pulsar **Guardar**.
 
 ## Cómo ejecutar
 
@@ -155,6 +152,8 @@ revista-digital/
 ├── index.html                 Marcado del sitio, secciones y barras de edición
 ├── styles.css                 Estética editorial oscura, responsive, accesible
 ├── app.js                     Toda la lógica (sitio, editores, biblioteca, flipbook)
+├── wrangler.toml              Configuración de Cloudflare Pages y KV
+├── functions/api/sitio.js     API de guardado compartido (GET/POST)
 └── assets/
     ├── revistas.json          Catálogo de la estantería (vacío por defecto)
     ├── pagina.mp3             Sonido de paso de página
@@ -179,8 +178,8 @@ desde la propia interfaz y quedan guardadas en el navegador; el catálogo de
 - **Panel de ficha**: descripción editable (se guarda sola, por revista) y
   datos del archivo.
 - **Vista previa y descarga**: cada ficha ofrece «Vista previa» (portada,
-  categoría, páginas, descripción) y «Descargar» para bajar el PDF original
-  sin abrir el lector.
+  categoría, páginas, descripción y una muestra corta de las primeras páginas
+  del PDF) y «Descargar» para bajar el PDF original sin abrir el lector.
 - **Biblioteca vacía**: si aún no hay ediciones, se muestra un estado con la
   acción «Publicar la primera» y se ocultan los filtros que no aportan nada.
 
@@ -216,26 +215,38 @@ en tu navegador. En cada ficha propia aparece un ✕ para quitarla.
 | `←` / `→`, `AvPág` / `RePág` | Página anterior / siguiente |
 | `Inicio` / `Fin` | Primera / última página |
 | `F` | Pantalla completa |
-| `E` | Activar / desactivar el editor de texto sobre páginas |
-| `Supr` | Borrar el texto seleccionado (en modo texto) |
-| `Ctrl+Z` | Deshacer (en modo texto) |
-| `Esc` | Salir del modo texto / cerrar el panel |
+| `Esc` | Cerrar el panel o la vista previa |
 | `Intro` / `Espacio` | Abrir la revista enfocada (en la estantería) |
 
 ## Despliegue en Cloudflare Pages
 
-El sitio es 100 % estático: sube la carpeta tal cual.
+El sitio es estático salvo la pequeña API de guardado (`functions/api/sitio.js`),
+que usa un espacio de nombres KV para compartir los cambios entre
+dispositivos.
 
 ```bash
+# Una sola vez: crear el espacio KV y copiar su id en wrangler.toml
+npx wrangler kv namespace create noti-mision-sitio
+
+# Una sola vez: crear el proyecto de Pages
 npx wrangler pages project create noti-mision --production-branch main
-npx wrangler pages deploy . --project-name noti-mision
+
+# Publicar
+npx wrangler pages deploy . --project-name noti-mision --branch main
 ```
 
-Cualquier CDN estático sirve (GitHub Pages, Netlify…): no hay backend.
+`wrangler.toml` enlaza el espacio como `SITIO_KV` y `wrangler pages deploy`
+sube también la carpeta `functions/`. Comprueba que
+`https://noti-mision.pages.dev/api/sitio` responde `{"ok":true,"sitio":null}`
+antes del primer guardado.
+
+Sin Cloudflare, el sitio sigue funcionando con la copia local del navegador y
+los botones **Descargar cambios** / **Importar cambios**; solo falta el
+guardado compartido.
 
 **Resiliencia del CDN:** PDF.js y page-flip se cargan con `async` desde
 jsDelivr y `app.js` nunca espera a ellos. Si el CDN está lento o bloqueado,
-el sitio, las rutas y los dos modos de edición siguen funcionando; al abrir
+el sitio, las rutas y el modo edición del sitio siguen funcionando; al abrir
 o publicar un PDF se muestra un aviso de error a los ~10 s en lugar de
 quedarse en «Cargando…».
 
@@ -251,9 +262,10 @@ Además de editar textos, fotos y bloques desde **Configuración**, el botón
   cinta de identidad.
 
 El tema se guarda en `localStorage` (`revista:sitio`), viaja dentro de
-**Descargar cambios** / **Importar cambios** y se restablece solo con
-**Restablecer apariencia** (sin tocar textos ni fotos). La interfaz avisa si
-el acento o el texto pierden contraste con el fondo.
+**Descargar cambios** / **Importar cambios**, se publica en todos los
+dispositivos con **Guardar** y se restablece solo con **Restablecer
+apariencia** (sin tocar textos ni fotos). La interfaz avisa si el acento o el
+texto pierden contraste con el fondo.
 
 Los ajustes técnicos viven como constantes al principio de `app.js`: rutas de
 CDN y del sonido, secciones del sitio (`SECCIONES`), ancho máximo de
@@ -265,18 +277,19 @@ rasterizado (`ANCHO_RASTER`), categoría de las publicaciones propias
 
 - [PDF.js](https://mozilla.github.io/pdf.js/) 3.11.174 (jsDelivr)
 - [StPageFlip](https://github.com/nicm/stpageflip) 2.0.7 (jsDelivr)
-- IndexedDB para las publicaciones propias; localStorage para ediciones.
+- IndexedDB para las publicaciones propias; localStorage para el borrador de
+  ediciones y Cloudflare KV (Pages Functions) para la versión compartida.
 - Sin frameworks: JavaScript puro, CSS puro, HTML semántico.
 
 ## Pruebas
 
-Suites jsdom (50 + 15 + 70 + 14 + 26 aserciones) que cubren estantería,
+Suites jsdom (50 + 15 + 53 + 14 + 34 + 6 aserciones) que cubren estantería,
 filtros, apertura, navegación, panel, sonido, miniaturas, publicación, el modo
 `file://`, las rutas del sitio, la contraseña de la configuración (diálogo,
 error y desbloqueo), el modo edición del sitio (con la galería de bloques
-predefinidos), el editor de capas sobre páginas, la resiliencia sin CDN, la
-exportación del PDF editado, la biblioteca vacía, el panel de apariencia y la
-vista previa/descarga de la biblioteca. Además, una comprobación visual con
-Chrome headless (45 aserciones) verifica números de sección, fuentes, trama
-de los huecos, ausencia de desbordes de 390 a 1440 px y el panel lateral de
-edición.
+predefinidos), la resiliencia sin CDN, la biblioteca vacía, el panel de
+apariencia, la muestra corta de la vista previa, la ausencia del editor de
+texto sobre páginas y la sincronización del contenido en línea entre dos
+navegadores. Además, una comprobación visual con Chrome headless verifica
+números de sección, fuentes, trama de los huecos, ausencia de desbordes de
+390 a 1440 px, el panel lateral de edición y la muestra de la vista previa.

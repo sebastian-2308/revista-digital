@@ -15,8 +15,6 @@
         el navegador (IndexedDB).
      5. LECTOR tipo libro (StPageFlip): volteo 3D, sonido de página,
         miniaturas, pantalla completa y panel de descripción editable.
-     6. EDITOR DE TEXTO SOBRE LAS PÁGINAS (capas): títulos y notas que se
-        guardan por revista y se pueden exportar en un PDF editado.
 
    Requisitos: conexión a Internet la primera vez (CDN de PDF.js y page-flip).
    ========================================================================== */
@@ -43,7 +41,9 @@ const CATEGORIA_PROPIA = 'Mis revistas';
 const CLAVE_SONIDO = 'revista:sonido';
 const CLAVE_DESCRIPCION = 'revista:descripcion:';
 const CLAVE_SITIO = 'revista:sitio';
-const CLAVE_CAPAS = 'revista:capas:';
+
+/** Endpoint del guardado compartido (Cloudflare Pages Functions + KV). */
+const RUTA_API_SITIO = '/api/sitio';
 
 /** Huella FNV-1a de la contraseña que protege la configuración del sitio.
     Al ser un sitio estático esto no es seguridad real (el código es público):
@@ -113,7 +113,9 @@ const estado = {
   // modo edición del sitio
   modoEdicionSitio: false,
   sitioDesbloqueado: false,     // contraseña correcta en esta visita
-  sitio: { textos: {}, fotos: {}, ocultos: [] },
+  sitio: { textos: {}, fotos: {}, ocultos: [], descripciones: {} },
+  guardandoSitio: false,        // petición de guardado en línea en curso
+  sitioEnLinea: false,          // hay una versión compartida cargada
 
   // lectura actual
   doc: null,                    // documento pdf.js abierto
@@ -138,14 +140,7 @@ const estado = {
   railVisible: false,
   generandoMiniaturas: false,
 
-  // editor de texto sobre páginas (capas)
   divs: [],                      // <div class="pagina"> originales del libro
-  capas: {},                     // { pagina: [capa…] } de la revista abierta
-  seleccion: null,               // id de la capa seleccionada
-  historialCapas: [],            // snapshots para deshacer (Ctrl+Z)
-  modoTexto: false,
-  altoPaginaPx: 1100,            // alto real de la página en el lector
-  exportando: false,
 
   guardadoLocal: true            // false si IndexedDB no está disponible
 };
@@ -170,6 +165,8 @@ const ui = {
   errorClave: $('#errorClave'),
   btnCancelarClave: $('#btnCancelarClave'),
   btnEntrarClave: $('#btnEntrarClave'),
+  btnGuardarEnLinea: $('#btnGuardarEnLinea'),
+  estadoGuardado: $('#estadoGuardado'),
   btnDescargarCambios: $('#btnDescargarCambios'),
   btnImportarCambios: $('#btnImportarCambios'),
   inputImportar: $('#inputImportar'),
@@ -204,6 +201,8 @@ const ui = {
   previaMeta: $('#previaMeta'),
   previaDescripcion: $('#previaDescripcion'),
   previaAyudaEdicion: $('#previaAyudaEdicion'),
+  previaMuestra: $('#previaMuestra'),
+  previaMuestras: $('#previaMuestras'),
   btnLeerPrevia: $('#btnLeerPrevia'),
   btnDescargarPrevia: $('#btnDescargarPrevia'),
   btnCerrarPrevia: $('#btnCerrarPrevia'),
@@ -226,21 +225,6 @@ const ui = {
   miniaturas: $('#miniaturas'),
   lineaProgreso: $('#lineaProgreso'),
   barraProgreso: $('#barraProgreso'),
-  btnEditarTexto: $('#btnEditarTexto'),
-  btnExportar: $('#btnExportar'),
-  barraCapas: $('#barraCapas'),
-  capaFuente: $('#capaFuente'),
-  capaTamano: $('#capaTamano'),
-  capaMas: $('#capaMas'),
-  capaMenos: $('#capaMenos'),
-  capaColor: $('#capaColor'),
-  capaNegrita: $('#capaNegrita'),
-  capaCursiva: $('#capaCursiva'),
-  capaCentrada: $('#capaCentrada'),
-  capaDuplicar: $('#capaDuplicar'),
-  capaDeshacer: $('#capaDeshacer'),
-  capaBorrar: $('#capaBorrar'),
-  chipModo: $('#chipModo'),
 
   // overlays, panel y avisos
   overlayCarga: $('#overlayCarga'),
@@ -1055,11 +1039,6 @@ async function abrirPDF(bytes, meta) {
     actualizarDatosPanel();
     ocultarOverlayCarga();
 
-    // Capas guardadas de esta revista (editor de texto sobre páginas)
-    cargarCapasGuardadas();
-    colocarCapasPaginas();
-    actualizarMetricas();
-
     // Pintado progresivo: primero las dos visibles, luego el resto
     pintarPrioridad(0);
     pintarPrioridad(1);
@@ -1120,6 +1099,16 @@ async function pintarPrioridad(indice) {
   }
 }
 
+/** Devuelve los bytes del PDF de una publicación (propia o del catálogo). */
+async function obtenerBytesPublicacion(pub) {
+  if (pub.bytes) {
+    return pub.bytes instanceof Uint8Array ? pub.bytes : new Uint8Array(pub.bytes);
+  }
+  const respuesta = await fetch(pub.pdf, { cache: 'no-store' });
+  if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+  return new Uint8Array(await respuesta.arrayBuffer());
+}
+
 /** Abre una publicación de la biblioteca (manifiesto o propia). */
 async function abrirPublicacion(pub) {
   if (estado.abriendo) return;
@@ -1130,15 +1119,7 @@ async function abrirPublicacion(pub) {
   const pararVigilante = vigilanteCarga(45);
 
   try {
-    let bytes;
-    if (pub.bytes) {
-      // publicación propia guardada en el navegador
-      bytes = pub.bytes instanceof Uint8Array ? pub.bytes : new Uint8Array(pub.bytes);
-    } else {
-      const respuesta = await fetch(pub.pdf, { cache: 'no-store' });
-      if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
-      bytes = new Uint8Array(await respuesta.arrayBuffer());
-    }
+    const bytes = await obtenerBytesPublicacion(pub);
 
     const ok = await abrirPDF(bytes, {
       nombre: pub.titulo + (pub.numero ? ' · ' + pub.numero : ''),
@@ -1196,6 +1177,7 @@ function abrirVistaPrevia(pub) {
   }
 
   ui.modalVistaPrevia.classList.remove('oculto');
+  iniciarMuestraPrevia(pub);
   setTimeout(() => ui.btnLeerPrevia.focus(), 30);
 }
 
@@ -1203,6 +1185,7 @@ function abrirVistaPrevia(pub) {
 function cerrarVistaPrevia() {
   if (!ui.modalVistaPrevia) return;
   ui.modalVistaPrevia.classList.add('oculto');
+  tokenMuestraPrevia++;
   ui.previaDescripcion.removeAttribute('contenteditable');
   if (ui.previaAyudaEdicion) ui.previaAyudaEdicion.hidden = true;
   pubPrevia = null;
@@ -1237,17 +1220,96 @@ let temporizadorGuardarDescripcionPrevia = null;
 function guardarDescripcionPrevia() {
   if (!pubPrevia) return;
   const pub = pubPrevia;
-  const clave = claveDescripcionDe(pub);
   const texto = ui.previaDescripcion.textContent.trim();
   clearTimeout(temporizadorGuardarDescripcionPrevia);
   temporizadorGuardarDescripcionPrevia = setTimeout(() => {
-    try {
-      localStorage.setItem(clave, texto);
-    } catch {
-      // Sin almacenamiento, al menos se mantiene mientras la ficha esté abierta.
-      pub.descripcion = texto;
-    }
+    guardarDescripcionDe(pub, texto);
   }, 400);
+}
+
+/* --- Muestra corta del PDF dentro de la vista previa --------------------- */
+/* No se monta el libro completo: solo se rasterizan un par de páginas para
+   que la persona se haga una idea antes de abrir el lector. */
+
+let tokenMuestraPrevia = 0;
+const cacheMuestrasPrevia = new Map();
+
+function pintarMuestraPrevia(paginas) {
+  if (!ui.previaMuestra || !ui.previaMuestras) return;
+  if (!paginas || !paginas.length) {
+    ui.previaMuestra.hidden = true;
+    ui.previaMuestras.innerHTML = '';
+    return;
+  }
+  ui.previaMuestra.hidden = false;
+  ui.previaMuestras.innerHTML = paginas.map((p) =>
+    '<figure><img src="' + p.url + '" alt="Página ' + p.n + ' de la revista" ' +
+    'loading="lazy" decoding="async"><figcaption>Página ' + p.n + '</figcaption></figure>'
+  ).join('');
+}
+
+async function cargarMuestraPrevia(pub, token) {
+  if (!ui.previaMuestra || !ui.previaMuestras) return;
+  const enCache = cacheMuestrasPrevia.get(pub.id);
+  if (enCache) { pintarMuestraPrevia(enCache); return; }
+
+  ui.previaMuestra.hidden = false;
+  ui.previaMuestras.innerHTML =
+    '<p class="vista-previa__muestra-estado">Cargando muestra…</p>';
+
+  try {
+    const bytes = await obtenerBytesPublicacion(pub);
+    const pdfjs = await obtenerPdfjs(4000);
+    const doc = await pdfjs.getDocument({
+      data: bytes.slice(0),
+      cMapUrl: RUTA_CMAPS,
+      cMapPacked: true,
+      standardFontDataUrl: RUTA_FUENTES
+    }).promise;
+
+    if (doc.numPages < 2) {
+      try { doc.destroy(); } catch { /* noop */ }
+      if (token === tokenMuestraPrevia) pintarMuestraPrevia([]);
+      return;
+    }
+
+    // La portada ya se ve a la izquierda: mostramos las dos páginas siguientes.
+    const numeros = [];
+    for (let n = 2; n <= Math.min(3, doc.numPages); n++) numeros.push(n);
+
+    const paginas = [];
+    for (const n of numeros) {
+      const page = await doc.getPage(n);
+      const vp1 = page.getViewport({ scale: 1 });
+      const escala = Math.max(0.1, 150 / vp1.width);
+      const vp = page.getViewport({ scale: escala });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(vp.width);
+      canvas.height = Math.round(vp.height);
+      const ctx = canvas.getContext('2d', { alpha: false });
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      paginas.push({ n: n, url: canvas.toDataURL('image/jpeg', 0.72) });
+      try { page.cleanup(); } catch { /* noop */ }
+    }
+
+    try { doc.destroy(); } catch { /* noop */ }
+    if (token !== tokenMuestraPrevia) return;
+    cacheMuestrasPrevia.set(pub.id, paginas);
+    pintarMuestraPrevia(paginas);
+  } catch (e) {
+    console.warn('No se pudo cargar la muestra de la revista:', e);
+    if (token === tokenMuestraPrevia) pintarMuestraPrevia([]);
+  }
+}
+
+function iniciarMuestraPrevia(pub) {
+  tokenMuestraPrevia++;
+  if (ui.previaMuestra) ui.previaMuestra.hidden = true;
+  if (ui.previaMuestras) ui.previaMuestras.innerHTML = '';
+  cargarMuestraPrevia(pub, tokenMuestraPrevia);
 }
 
 /** Nombre de archivo seguro (sin acentos ni signos raros). */
@@ -1358,10 +1420,6 @@ function destruirLibro() {
   estado.imgs = [];
   estado.paginas = [];
   estado.divs = [];
-  estado.capas = {};
-  estado.seleccion = null;
-  estado.historialCapas = [];
-  aplicarModoTexto(false);
   if (estado.doc) {
     try { estado.doc.destroy(); } catch { /* noop */ }
     estado.doc = null;
@@ -1442,7 +1500,6 @@ function dimensionarLibro() {
   ui.contenedorLibro.style.minHeight = '0px';
 
   estado.flip.update();
-  actualizarMetricas();
 }
 
 /** Refresca indicador, botones, deslizador y miniatura activa. */
@@ -1625,15 +1682,40 @@ function claveDescripcionDe(pub) {
   return CLAVE_DESCRIPCION + (pub && pub.id ? pub.id : 'archivo');
 }
 
-function claveDescripcionActual() {
-  return claveDescripcionDe(estado.pubAbierta);
+/** Descripción editada de una revista: primero la copia compartida y,
+    si no existe, la que este navegador guardó antes. */
+function descripcionGuardadaDe(pub) {
+  const id = pub && pub.id;
+  if (id && estado.sitio && estado.sitio.descripciones) {
+    const compartida = estado.sitio.descripciones[id];
+    if (typeof compartida === 'string' && compartida) return compartida;
+  }
+  let local = null;
+  try { local = localStorage.getItem(claveDescripcionDe(pub)); } catch { /* noop */ }
+  return local || null;
+}
+
+function guardarDescripcionDe(pub, texto) {
+  const limpio = String(texto == null ? '' : texto).trim();
+  if (pub && pub.id && estado.sitio && estado.sitio.descripciones) {
+    estado.sitio.descripciones[pub.id] = limpio;
+    guardarSitioProgramado();
+  }
+  try { localStorage.setItem(claveDescripcionDe(pub), limpio); } catch { /* noop */ }
+}
+
+function borrarDescripcionDe(pub) {
+  if (pub && pub.id && estado.sitio && estado.sitio.descripciones) {
+    delete estado.sitio.descripciones[pub.id];
+    guardarSitioProgramado();
+  }
+  try { localStorage.removeItem(claveDescripcionDe(pub)); } catch { /* noop */ }
 }
 
 /** Devuelve la descripción editada de una revista o, si no hay,
     la que trae la publicación. Se comparte entre lector y vista previa. */
 function descripcionDePublicacion(pub) {
-  let guardado = null;
-  try { guardado = localStorage.getItem(claveDescripcionDe(pub)); } catch { /* noop */ }
+  const guardado = descripcionGuardadaDe(pub);
   if (guardado) return guardado;
   if (pub && pub.descripcion) return pub.descripcion;
   return 'Una edición de la biblioteca de Noti‑Misión. Ábrela para hojearla ' +
@@ -1649,8 +1731,7 @@ function descripcionPorDefecto() {
 }
 
 function cargarTextoInfo() {
-  let guardado = null;
-  try { guardado = localStorage.getItem(claveDescripcionActual()); } catch { /* noop */ }
+  const guardado = descripcionGuardadaDe(estado.pubAbierta);
   ui.textoInfo.textContent = guardado || descripcionPorDefecto();
 }
 
@@ -1659,9 +1740,7 @@ let temporizadorGuardarDescripcion = null;
 function guardarDescripcion() {
   clearTimeout(temporizadorGuardarDescripcion);
   temporizadorGuardarDescripcion = setTimeout(() => {
-    try {
-      localStorage.setItem(claveDescripcionActual(), ui.textoInfo.textContent.trim());
-    } catch { /* almacenamiento bloqueado */ }
+    guardarDescripcionDe(estado.pubAbierta, ui.textoInfo.textContent);
   }, 400);
 }
 
@@ -1731,8 +1810,10 @@ function irA(seccion) {
 }
 
 /* ========================= 16. EDICIÓN DEL SITIO ========================= */
-/* Textos, fotos y bloques del sitio se guardan en el navegador de quien
-   edita (localStorage) y pueden exportarse/importarse como JSON. */
+/* Textos, fotos, descripciones y tema se guardan mientras se edita en el
+   navegador (localStorage). El botón «Guardar» los publica en el almacén
+   compartido (API /api/sitio sobre Cloudflare KV); también pueden
+   exportarse/importarse como copia JSON. */
 
 const originalesSitio = new Map();   // contenido base capturado al arrancar
 let temporizadorGuardarSitio = null;
@@ -1878,11 +1959,20 @@ function normalizarSitio(datos) {
       plantilla: e.plantilla,
       seccion: SECCIONES.includes(e.seccion) ? e.seccion : 'inicio'
     }));
+  const descripciones = {};
+  if (d.descripciones && typeof d.descripciones === 'object') {
+    Object.keys(d.descripciones).forEach((id) => {
+      if (typeof d.descripciones[id] === 'string') {
+        descripciones[id] = d.descripciones[id];
+      }
+    });
+  }
   return {
     textos: (d.textos && typeof d.textos === 'object') ? d.textos : {},
     fotos: (d.fotos && typeof d.fotos === 'object') ? d.fotos : {},
     ocultos: Array.isArray(d.ocultos) ? d.ocultos.slice() : [],
     nuevos: nuevos,
+    descripciones: descripciones,
     tema: normalizarTema(d.tema)
   };
 }
@@ -1899,6 +1989,9 @@ function guardarSitio() {
   } catch {
     avisar('No se pudieron guardar los cambios (almacenamiento lleno o bloqueado).', true);
   }
+  if (estado.modoEdicionSitio && !estado.guardandoSitio) {
+    marcarEstadoGuardado('Cambios sin guardar. Pulsa «Guardar» para publicarlos.');
+  }
 }
 
 function cargarSitio() {
@@ -1907,6 +2000,92 @@ function cargarSitio() {
     const guardado = localStorage.getItem(CLAVE_SITIO);
     if (guardado) estado.sitio = normalizarSitio(JSON.parse(guardado));
   } catch { /* almacenamiento bloqueado */ }
+
+  // Las descripciones por revista vivían en claves separadas: las pasamos
+  // al modelo del sitio para que también se puedan guardar en línea.
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const clave = localStorage.key(i);
+      if (!clave || clave.indexOf(CLAVE_DESCRIPCION) !== 0) continue;
+      const id = clave.slice(CLAVE_DESCRIPCION.length);
+      if (!id || estado.sitio.descripciones[id]) continue;
+      const texto = localStorage.getItem(clave);
+      if (texto) estado.sitio.descripciones[id] = texto;
+    }
+  } catch { /* almacenamiento bloqueado */ }
+}
+
+/** Trae la versión compartida. Si existe, manda sobre la copia local. */
+async function cargarSitioEnLinea() {
+  if (location.protocol === 'file:') return false;
+  const control = new AbortController();
+  const limite = setTimeout(() => control.abort(), 5000);
+  try {
+    const r = await fetch(RUTA_API_SITIO + '?t=' + Date.now(), {
+      cache: 'no-store',
+      signal: control.signal,
+      headers: { Accept: 'application/json' }
+    });
+    if (!r.ok) return false;
+    const datos = await r.json();
+    if (!datos || !datos.sitio || typeof datos.sitio !== 'object') return false;
+    estado.sitio = normalizarSitio(datos.sitio);
+    estado.sitioEnLinea = true;
+    return true;
+  } catch {
+    // Sin conexión, API lenta o abierto como archivo local: seguimos con lo local.
+    return false;
+  } finally {
+    clearTimeout(limite);
+  }
+}
+
+function marcarEstadoGuardado(texto, tipo) {
+  if (!ui.estadoGuardado) return;
+  ui.estadoGuardado.textContent = texto || '';
+  ui.estadoGuardado.classList.toggle('barra-edicion__estado--ok', tipo === 'ok');
+  ui.estadoGuardado.classList.toggle('barra-edicion__estado--error', tipo === 'error');
+}
+
+/** Publica los cambios en el almacén compartido (KV de Cloudflare). */
+async function guardarSitioEnLinea() {
+  if (estado.guardandoSitio) return;
+  estado.guardandoSitio = true;
+  if (ui.btnGuardarEnLinea) ui.btnGuardarEnLinea.disabled = true;
+  marcarEstadoGuardado('Guardando en línea…');
+  guardarSitio();
+
+  const control = new AbortController();
+  const limite = setTimeout(() => control.abort(), 30000);
+  try {
+    const r = await fetch(RUTA_API_SITIO, {
+      method: 'POST',
+      cache: 'no-store',
+      signal: control.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Clave-Editor': HUELLA_CLAVE_SITIO
+      },
+      body: JSON.stringify({ sitio: estado.sitio })
+    });
+    const datos = await r.json().catch(() => null);
+    if (!r.ok) {
+      throw new Error((datos && datos.error) || ('HTTP ' + r.status));
+    }
+    estado.sitioEnLinea = true;
+    marcarEstadoGuardado('Guardado en todos los dispositivos.', 'ok');
+    avisar('Cambios guardados. Ya se ven en otros navegadores y dispositivos.');
+  } catch (e) {
+    const detalle = (e && e.name === 'AbortError')
+      ? 'tiempo de espera agotado.'
+      : ((e && e.message) || e);
+    marcarEstadoGuardado('No se pudo guardar en línea.', 'error');
+    avisar('No se pudo guardar en línea: ' + detalle, true);
+  } finally {
+    clearTimeout(limite);
+    estado.guardandoSitio = false;
+    if (ui.btnGuardarEnLinea) ui.btnGuardarEnLinea.disabled = false;
+  }
 }
 
 /** Copia el contenido original de cada marcador (para restablecer). */
@@ -1918,32 +2097,6 @@ function capturarOriginales() {
     const img = fig.querySelector('.foto__img');
     originalesSitio.set('f:' + fig.dataset.foto, img ? img.getAttribute('src') : null);
   });
-}
-
-/** Intenta traer la base publicada del proyecto (opcional; 404 tolerado). */
-async function cargarEdicionesPublicadas() {
-  try {
-    const r = await fetch('assets/ediciones.json', { cache: 'no-store' });
-    if (!r.ok) return;
-    const datos = normalizarSitio(await r.json());
-    const locales = estado.sitio;
-    // El tema de la base solo manda si este navegador no guardó uno propio.
-    let tieneTemaLocal = false;
-    try {
-      const guardado = JSON.parse(localStorage.getItem(CLAVE_SITIO) || 'null');
-      tieneTemaLocal = !!(guardado && guardado.tema);
-    } catch { /* sin tema local */ }
-    // los bloques nuevos propios mandan sobre los de la base (mismo id)
-    const porId = new Map();
-    datos.nuevos.concat(locales.nuevos).forEach((e) => porId.set(e.id, e));
-    estado.sitio = normalizarSitio({
-      textos: Object.assign({}, datos.textos, locales.textos),
-      fotos: Object.assign({}, datos.fotos, locales.fotos),
-      ocultos: Array.from(new Set(datos.ocultos.concat(locales.ocultos))),
-      nuevos: Array.from(porId.values()),
-      tema: tieneTemaLocal ? locales.tema : datos.tema
-    });
-  } catch { /* file:// o sin archivo: seguimos con lo local */ }
 }
 
 function aplicarFoto(fig, dataURL) {
@@ -2057,12 +2210,18 @@ function alternarModoEdicionSitio(activo) {
   if (activo) {
     if (estado.vista === 'lector') mostrarVista('biblioteca');
     inyectarBotonesBloque();
+    marcarEstadoGuardado(estado.sitioEnLinea
+      ? 'Versión compartida cargada. Pulsa «Guardar» al terminar.'
+      : 'Aún no hay una versión compartida. Pulsa «Guardar» para publicarla.',
+    estado.sitioEnLinea ? 'ok' : '');
     avisar('Configuración: pulsa un texto para escribir, «Cambiar foto» en ' +
       'las fotos, «Agregar bloque» para añadir contenido nuevo y ✕ en los ' +
-      'bloques para ocultarlos (o borrar los agregados).');
+      'bloques para ocultarlos. Al terminar, pulsa «Guardar» para aplicar ' +
+      'los cambios en todos los dispositivos.');
   } else {
     quitarBotonesBloque();
     guardarSitio();
+    marcarEstadoGuardado('');
     // «quitarBotonesBloque» desoculta todo: reaplicamos la lista de ocultos
     // para que los bloques que la persona ocultó sigan ocultos al salir.
     document.querySelectorAll('[data-bloque]').forEach((bloque) => {
@@ -2390,6 +2549,7 @@ function importarCambiosSitio(archivo) {
         fotos: Object.assign({}, estado.sitio.fotos, datos.fotos),
         ocultos: Array.from(new Set(estado.sitio.ocultos.concat(datos.ocultos))),
         nuevos: Array.from(porId.values()),
+        descripciones: Object.assign({}, estado.sitio.descripciones, datos.descripciones),
         // Un archivo antiguo sin «tema» no debe borrar la apariencia actual.
         tema: (crudo && crudo.tema)
           ? Object.assign({}, estado.sitio.tema, datos.tema)
@@ -2399,6 +2559,8 @@ function importarCambiosSitio(archivo) {
       aplicarTema();
       aplicarEdicionesSitio();
       if (estado.modoEdicionSitio) inyectarBotonesBloque();
+      marcarEstadoGuardado('Cambios importados en este navegador. Pulsa «Guardar» ' +
+        'para aplicarlos en todos los dispositivos.', 'ok');
       avisar('Cambios importados.');
     } catch {
       avisar('El archivo no es un JSON de cambios válido.', true);
@@ -2436,574 +2598,9 @@ function restablecerSitio() {
   aplicarTema();
   aplicarEdicionesSitio();
   if (estado.modoEdicionSitio) inyectarBotonesBloque();
+  marcarEstadoGuardado('Sitio restablecido en este navegador. Pulsa «Guardar» ' +
+    'para aplicarlo en todos los dispositivos.', 'ok');
   avisar('Sitio restablecido al contenido original (los bloques agregados se eliminaron).');
-}
-
-/* ============ 17. EDITOR DE TEXTO SOBRE LAS PÁGINAS (CAPAS) =============== */
-/* Cada revista guarda sus capas (títulos y notas superpuestos) en el
-   navegador. En modo texto, un clic sobre una página crea un texto nuevo. */
-
-const FUENTES_CAPA = {
-  serif: '"Fraunces", Georgia, "Times New Roman", serif',
-  sans: '"Archivo", system-ui, Arial, sans-serif',
-  mono: 'ui-monospace, "Cascadia Mono", Consolas, monospace'
-};
-
-function claveCapasActual() {
-  return CLAVE_CAPAS + (estado.pubAbierta ? estado.pubAbierta.id : 'archivo-local');
-}
-
-function nuevaCapa(datos) {
-  return Object.assign({
-    id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    pagina: 0,
-    x: 6, y: 8, w: 60,
-    fs: 3.2,                      // tamaño de letra en % del alto de página
-    texto: 'Escribe aquí…',
-    fuente: 'serif',
-    color: '#14161c',
-    negrita: false,
-    cursiva: false,
-    centrada: false
-  }, datos || {});
-}
-
-function capasDePagina(indice) {
-  return estado.capas[indice] || [];
-}
-
-function buscarCapa(id) {
-  for (const k of Object.keys(estado.capas)) {
-    const f = estado.capas[k].find((c) => c.id === id);
-    if (f) return f;
-  }
-  return null;
-}
-
-function capaActual() {
-  return estado.seleccion ? buscarCapa(estado.seleccion) : null;
-}
-
-/** Dibuja (o refresca) la capa dentro del <div class="pagina"> indicado. */
-function pintarCapaDOM(capa, cont) {
-  let el = cont.querySelector('.capa[data-id="' + capa.id + '"]');
-  if (!el) {
-    el = document.createElement('div');
-    el.className = 'capa';
-    el.dataset.id = capa.id;
-    el.innerHTML =
-      '<span class="capa__etiqueta" aria-hidden="true">Aa</span>' +
-      '<div class="capa__texto"></div>';
-    cont.appendChild(el);
-  }
-
-  el.style.left = capa.x + '%';
-  el.style.top = capa.y + '%';
-  el.style.width = capa.w + '%';
-
-  const texto = el.querySelector('.capa__texto');
-  if (document.activeElement !== texto) texto.textContent = capa.texto;
-  texto.style.fontFamily = FUENTES_CAPA[capa.fuente] || FUENTES_CAPA.serif;
-  texto.style.color = capa.color;
-  texto.style.fontWeight = capa.negrita ? '700' : '400';
-  texto.style.fontStyle = capa.cursiva ? 'italic' : 'normal';
-  texto.style.textAlign = capa.centrada ? 'center' : 'left';
-  texto.style.fontSize = (estado.altoPaginaPx * capa.fs / 100) + 'px';
-  texto.contentEditable = estado.modoTexto ? 'true' : 'false';
-  el.classList.toggle('capa--seleccionada', estado.seleccion === capa.id);
-  return el;
-}
-
-function colocarCapasPagina(indice) {
-  const cont = estado.divs[indice];
-  if (!cont) return;
-  capasDePagina(indice).forEach((capa) => pintarCapaDOM(capa, cont));
-}
-
-function colocarCapasPaginas() {
-  Object.keys(estado.capas).forEach((k) => colocarCapasPagina(Number(k)));
-}
-
-function refrescarCapas() {
-  Object.keys(estado.capas).forEach((k) => {
-    const indice = Number(k);
-    const cont = estado.divs[indice];
-    if (!cont) return;
-    capasDePagina(indice).forEach((c) => pintarCapaDOM(c, cont));
-  });
-}
-
-/** Mide la página real para dimensionar las letras de las capas. */
-function actualizarMetricas() {
-  let alto = 0;
-  if (estado.divs[0]) alto = estado.divs[0].getBoundingClientRect().height;
-  if (!alto && ui.contenedorLibro) alto = ui.contenedorLibro.clientHeight;
-  if (alto) estado.altoPaginaPx = alto;
-  actualizarTamanoCapas();
-}
-
-function actualizarTamanoCapas() {
-  Object.keys(estado.capas).forEach((k) => {
-    const indice = Number(k);
-    const cont = estado.divs[indice];
-    if (!cont) return;
-    capasDePagina(indice).forEach((capa) => {
-      const el = cont.querySelector('.capa[data-id="' + capa.id + '"] .capa__texto');
-      if (el) el.style.fontSize = (estado.altoPaginaPx * capa.fs / 100) + 'px';
-    });
-  });
-}
-
-function crearCapaEnPagina(indice, datos) {
-  if (!estado.divs[indice]) return null;
-  if (!estado.capas[indice]) estado.capas[indice] = [];
-
-  const capa = nuevaCapa(Object.assign({ pagina: indice }, datos));
-  estado.capas[indice].push(capa);
-  pintarCapaDOM(capa, estado.divs[indice]);
-  seleccionarCapa(capa.id);
-  registrarHistorial();
-  programarGuardadoCapas();
-  return capa;
-}
-
-function seleccionarCapa(id) {
-  estado.seleccion = id;
-  refrescarCapas();
-  sincronizarBarraCapas();
-}
-
-function deseleccionarCapa() {
-  estado.seleccion = null;
-  refrescarCapas();
-}
-
-function mutarCapaActual(mutador) {
-  const capa = capaActual();
-  if (!capa) return;
-  mutador(capa);
-  refrescarCapas();
-  sincronizarBarraCapas();
-  registrarHistorial();
-  programarGuardadoCapas();
-}
-
-function duplicarCapa() {
-  const capa = capaActual();
-  if (!capa) return;
-  const copia = crearCapaEnPagina(capa.pagina, {
-    x: limite(capa.x + 3, 0, Math.max(0, 100 - capa.w)),
-    y: limite(capa.y + 4, 0, 95),
-    w: capa.w, fs: capa.fs, texto: capa.texto, fuente: capa.fuente,
-    color: capa.color, negrita: capa.negrita, cursiva: capa.cursiva,
-    centrada: capa.centrada
-  });
-  if (copia) seleccionarCapa(copia.id);
-}
-
-function borrarCapaActual() {
-  const capa = capaActual();
-  if (!capa) return;
-  estado.capas[capa.pagina] = capasDePagina(capa.pagina).filter((c) => c.id !== capa.id);
-
-  const cont = estado.divs[capa.pagina];
-  if (cont) {
-    const el = cont.querySelector('.capa[data-id="' + capa.id + '"]');
-    if (el) el.remove();
-  }
-  estado.seleccion = null;
-  sincronizarBarraCapas();
-  registrarHistorial();
-  programarGuardadoCapas();
-}
-
-/* --- Barra de herramientas de capas --- */
-function sincronizarBarraCapas() {
-  const capa = capaActual();
-  const controles = ['capaMas', 'capaMenos', 'capaNegrita', 'capaCursiva',
-    'capaCentrada', 'capaDuplicar', 'capaBorrar'];
-  controles.forEach((k) => { ui[k].disabled = !capa; });
-  ui.capaFuente.disabled = !capa;
-  ui.capaColor.disabled = !capa;
-
-  if (!capa) {
-    ui.capaTamano.textContent = '—';
-    ui.capaNegrita.setAttribute('aria-pressed', 'false');
-    ui.capaCursiva.setAttribute('aria-pressed', 'false');
-    ui.capaCentrada.setAttribute('aria-pressed', 'false');
-    return;
-  }
-  ui.capaFuente.value = capa.fuente;
-  ui.capaColor.value = capa.color;
-  ui.capaTamano.textContent = capa.fs.toFixed(1).replace('.', ',') + ' %';
-  ui.capaNegrita.setAttribute('aria-pressed', String(!!capa.negrita));
-  ui.capaCursiva.setAttribute('aria-pressed', String(!!capa.cursiva));
-  ui.capaCentrada.setAttribute('aria-pressed', String(!!capa.centrada));
-}
-
-/* --- Historial (Ctrl+Z) ---
-   La pila guarda instantáneas completas de estado.capas; la de arriba del
-   todo es SIEMPRE el estado actual. Deshacer descarta la última y vuelve a
-   aplicar la anterior. */
-function registrarHistorial() {
-  const actual = JSON.stringify(estado.capas);
-  if (estado.historialCapas[estado.historialCapas.length - 1] === actual) return;
-  estado.historialCapas.push(actual);
-  if (estado.historialCapas.length > 40) estado.historialCapas.shift();
-}
-
-function deshacerCapas() {
-  if (estado.historialCapas.length <= 1) { avisar('No hay nada que deshacer.'); return; }
-  estado.historialCapas.pop();   // descartamos el estado actual
-  estado.capas = JSON.parse(estado.historialCapas[estado.historialCapas.length - 1]);
-  if (!buscarCapa(estado.seleccion)) estado.seleccion = null;
-
-  estado.divs.forEach((div) => {
-    if (div) div.querySelectorAll('.capa').forEach((c) => c.remove());
-  });
-  colocarCapasPaginas();
-  actualizarTamanoCapas();
-  sincronizarBarraCapas();
-  programarGuardadoCapas();
-  avisar('Cambio deshecho.');
-}
-
-/* --- Guardado por revista --- */
-let temporizadorGuardarCapas = null;
-
-function programarGuardadoCapas() {
-  clearTimeout(temporizadorGuardarCapas);
-  temporizadorGuardarCapas = setTimeout(guardarCapas, 350);
-}
-
-function guardarCapas() {
-  try {
-    localStorage.setItem(claveCapasActual(), JSON.stringify(estado.capas));
-  } catch { /* almacenamiento bloqueado */ }
-}
-
-function cargarCapasGuardadas() {
-  estado.capas = {};
-  estado.seleccion = null;
-  estado.historialCapas = [];
-  try {
-    const guardado = localStorage.getItem(claveCapasActual());
-    if (guardado) {
-      const datos = JSON.parse(guardado);
-      if (datos && typeof datos === 'object') estado.capas = datos;
-    }
-  } catch { /* almacenamiento bloqueado */ }
-  registrarHistorial();   // estado inicial por si hay que deshacer
-}
-
-/* --- Modo texto --- */
-function alternarModoTexto() {
-  aplicarModoTexto(!estado.modoTexto);
-}
-
-function aplicarModoTexto(activo) {
-  estado.modoTexto = activo;
-  document.body.classList.toggle('modo-texto', activo);
-  ui.btnEditarTexto.setAttribute('aria-pressed', String(activo));
-  ui.chipModo.hidden = !activo;
-  ui.barraCapas.hidden = !activo;
-  activarEsquinas(!activo);
-
-  estado.divs.forEach((div) => {
-    if (!div) return;
-    div.querySelectorAll('.capa__texto').forEach((t) => {
-      t.contentEditable = activo ? 'true' : 'false';
-    });
-  });
-
-  if (activo) {
-    avisar('Modo texto: pulsa sobre una página para añadir un título o nota, ' +
-      'arrástralo para moverlo y usa la barra para darle estilo.');
-  } else {
-    deseleccionarCapa();
-    guardarCapas();
-  }
-}
-
-/** Oculta las esquinas de volteo mientras se edita (si la librería lo admite). */
-function activarEsquinas(activo) {
-  if (!estado.flip) return;
-  try {
-    const ajustes = estado.flip.getSettings();
-    ajustes.showPageCorners = activo;
-  } catch { /* la librería decidirá */ }
-}
-
-/* --- Interacción puntero sobre las capas --- */
-let arrastreCapa = null;
-
-/** Captura (fase de captura) el puntero: en modo texto el libro no voltea. */
-function onPunteroAbajoZona(e) {
-  if (!estado.modoTexto) return;
-  e.stopPropagation();
-
-  const capaEl = e.target.closest ? e.target.closest('.capa') : null;
-  if (!capaEl) return;
-  const capa = buscarCapa(capaEl.dataset.id);
-  if (!capa) return;
-
-  seleccionarCapa(capa.id);
-
-  const cont = estado.divs[capa.pagina];
-  if (!cont) return;
-  const rect = cont.getBoundingClientRect();
-  if (!rect.width || !rect.height) return;
-
-  arrastreCapa = {
-    id: capa.id,
-    xInicial: capa.x,
-    yInicial: capa.y,
-    px: rect.width,
-    py: rect.height,
-    xPuntero: e.clientX,
-    yPuntero: e.clientY,
-    movido: false
-  };
-}
-
-function onPunteroMoverZona(e) {
-  if (!arrastreCapa) return;
-  const capa = buscarCapa(arrastreCapa.id);
-  if (!capa) { arrastreCapa = null; return; }
-
-  const dx = ((e.clientX - arrastreCapa.xPuntero) / arrastreCapa.px) * 100;
-  const dy = ((e.clientY - arrastreCapa.yPuntero) / arrastreCapa.py) * 100;
-  if (Math.abs(dx) > 0.3 || Math.abs(dy) > 0.3) arrastreCapa.movido = true;
-
-  capa.x = limite(arrastreCapa.xInicial + dx, 0, Math.max(0, 100 - capa.w));
-  capa.y = limite(arrastreCapa.yInicial + dy, 0, 97);
-
-  const cont = estado.divs[capa.pagina];
-  const el = cont && cont.querySelector('.capa[data-id="' + capa.id + '"]');
-  if (el) { el.style.left = capa.x + '%'; el.style.top = capa.y + '%'; }
-}
-
-function onPunteroArribaZona() {
-  if (!arrastreCapa) return;
-  if (arrastreCapa.movido) {
-    registrarHistorial();
-    programarGuardadoCapas();
-  }
-  arrastreCapa = null;
-}
-
-/** Captura (fase de captura): en modo texto un clic crea una capa. */
-function onClicPagina(e) {
-  if (!estado.modoTexto) return;
-  e.stopPropagation();   // los clics no voltean el libro mientras se edita
-  if (e.target.closest && e.target.closest('.capa')) return;
-
-  const div = e.target.closest ? e.target.closest('.pagina') : null;
-  if (!div) return;
-  const indice = estado.divs.indexOf(div);
-  if (indice < 0) return;
-
-  const rect = div.getBoundingClientRect();
-  if (!rect.width || !rect.height) return;
-
-  const x = ((e.clientX - rect.left) / rect.width) * 100;
-  const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-  const capa = crearCapaEnPagina(indice, {
-    x: limite(x, 0, 90),
-    y: limite(y - 1.5, 0, 95)
-  });
-  if (!capa) return;
-
-  const el = div.querySelector('.capa[data-id="' + capa.id + '"] .capa__texto');
-  if (el) {
-    el.focus();
-    const rango = document.createRange();
-    rango.selectNodeContents(el);
-    const seleccion = window.getSelection();
-    seleccion.removeAllRanges();
-    seleccion.addRange(rango);
-  }
-}
-
-/** Texto escrito dentro de una capa → modelo + guardado. */
-function onInputCapa(e) {
-  const el = e.target.closest && e.target.closest('.capa__texto');
-  if (!el) return;
-  const capaEl = el.closest('.capa');
-  const capa = capaEl ? buscarCapa(capaEl.dataset.id) : null;
-  if (!capa) return;
-  capa.texto = el.textContent;
-  programarGuardadoCapas();
-}
-
-/* ============ 18. EXPORTACIÓN DEL PDF EDITADO ============================= */
-/* Compone cada página (imagen + capas) en un lienzo y escribe un PDF a mano
-   (JPEG embebidos, sin librerías externas). */
-
-function pintarCapaExportada(ctx, capa, ancho, alto) {
-  const fs = Math.max(6, alto * capa.fs / 100);
-  const familia = FUENTES_CAPA[capa.fuente] || FUENTES_CAPA.serif;
-  ctx.save();
-  ctx.fillStyle = capa.color || '#14161c';
-  ctx.font = (capa.cursiva ? 'italic ' : '') + (capa.negrita ? '700 ' : '400 ') +
-    fs + 'px ' + familia;
-  ctx.textBaseline = 'top';
-
-  const x = ancho * capa.x / 100;
-  const y = alto * capa.y / 100;
-  const anchoMax = ancho * capa.w / 100;
-  ctx.textAlign = capa.centrada ? 'center' : 'left';
-  const xLinea = capa.centrada ? x + anchoMax / 2 : x;
-
-  const lineas = ajustarLineas(ctx, capa.texto || '', anchoMax);
-  lineas.forEach((linea, i) => ctx.fillText(linea, xLinea, y + i * fs * 1.25));
-  ctx.restore();
-}
-
-/** Parte un texto en líneas que caben en `anchoMax` px. */
-function ajustarLineas(ctx, texto, anchoMax) {
-  const lineas = [];
-  String(texto).split('\n').forEach((parrafo) => {
-    const palabras = parrafo.split(/\s+/).filter(Boolean);
-    if (!palabras.length) { lineas.push(''); return; }
-    let actual = palabras[0];
-    for (let i = 1; i < palabras.length; i++) {
-      const prueba = actual + ' ' + palabras[i];
-      if (ctx.measureText(prueba).width <= anchoMax) actual = prueba;
-      else { lineas.push(actual); actual = palabras[i]; }
-    }
-    lineas.push(actual);
-  });
-  return lineas;
-}
-
-/** Pinta la página i (imagen + capas) en un lienzo listo para exportar. */
-function pintarPaginaExportada(indice) {
-  const img = estado.imgs[indice];
-  const ancho = (img && img.naturalWidth) || ANCHO_RASTER;
-  const alto = (img && img.naturalHeight) ||
-    Math.round(ancho * estado.altoBase / estado.anchoBase);
-
-  const canvas = document.createElement('canvas');
-  canvas.width = ancho;
-  canvas.height = alto;
-  const ctx = canvas.getContext('2d', { alpha: false });
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, ancho, alto);
-  if (img && img.complete && img.naturalWidth) ctx.drawImage(img, 0, 0, ancho, alto);
-
-  capasDePagina(indice).forEach((capa) => pintarCapaExportada(ctx, capa, ancho, alto));
-  return canvas;
-}
-
-/** Escribe un PDF mínimo con las páginas (JPEG) dadas. */
-function construirPDFEditado(paginas) {
-  const enc = new TextEncoder();
-  const partes = [];
-  const offsets = [];
-  let byte = 0;
-
-  const empujar = (dato) => {
-    const b = typeof dato === 'string' ? enc.encode(dato) : dato;
-    partes.push(b);
-    byte += b.length;
-  };
-  const marcar = () => { offsets.push(byte); };
-
-  empujar('%PDF-1.4\n');
-
-  const totalObjetos = 2 + paginas.length * 3;
-
-  marcar();
-  empujar('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
-
-  const hijos = paginas.map((_, i) => (3 + i * 3) + ' 0 R').join(' ');
-  marcar();
-  empujar('2 0 obj\n<< /Type /Pages /Kids [' + hijos + '] /Count ' +
-    paginas.length + ' >>\nendobj\n');
-
-  paginas.forEach((pagina, i) => {
-    const numPagina = 3 + i * 3;
-    const numContenido = numPagina + 1;
-    const numImagen = numPagina + 2;
-
-    // Píxeles → puntos (72 pt = 96 px)
-    const anchoPt = (pagina.ancho * 72 / 96).toFixed(2);
-    const altoPt = (pagina.alto * 72 / 96).toFixed(2);
-    const contenido = 'q ' + anchoPt + ' 0 0 ' + altoPt + ' 0 0 cm /Im' + i + ' Do Q\n';
-
-    marcar();
-    empujar(numPagina + ' 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' +
-      anchoPt + ' ' + altoPt + '] /Resources << /XObject << /Im' + i + ' ' +
-      numImagen + ' 0 R >> >> /Contents ' + numContenido + ' 0 R >>\nendobj\n');
-
-    marcar();
-    empujar(numContenido + ' 0 obj\n<< /Length ' + contenido.length +
-      ' >>\nstream\n' + contenido + 'endstream\nendobj\n');
-
-    marcar();
-    empujar(numImagen + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' +
-      pagina.ancho + ' /Height ' + pagina.alto +
-      ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' +
-      pagina.jpeg.length + ' >>\nstream\n');
-    empujar(pagina.jpeg);
-    empujar('\nendstream\nendobj\n');
-  });
-
-  const inicioXref = byte;
-  let xref = 'xref\n0 ' + (totalObjetos + 1) + '\n0000000000 65535 f \n';
-  offsets.forEach((o) => { xref += String(o).padStart(10, '0') + ' 00000 n \n'; });
-  empujar(xref);
-  empujar('trailer\n<< /Size ' + (totalObjetos + 1) + ' /Root 1 0 R >>\nstartxref\n' +
-    inicioXref + '\n%%EOF\n');
-
-  return new Blob(partes, { type: 'application/pdf' });
-}
-
-/** Exporta la revista abierta con sus capas ya escritas encima. */
-async function exportarRevista() {
-  if (!estado.doc || estado.exportando) return;
-  estado.exportando = true;
-  ui.btnExportar.disabled = true;
-  mostrarOverlayCarga('Exportando el PDF editado…', 'Componiendo páginas y textos');
-  const pararVigilante = vigilanteCarga(120);
-
-  try {
-    const paginas = [];
-    for (let i = 0; i < estado.paginas.length; i++) {
-      await pintarPrioridad(i);   // garantiza la imagen de la página
-      const img = estado.imgs[i];
-      if (!img || !img.complete || !img.naturalWidth) continue;
-
-      const lienzo = pintarPaginaExportada(i);
-      const blob = await new Promise((resolver, rechazar) => {
-        lienzo.toBlob((b) => (b ? resolver(b) : rechazar(new Error('toBlob devolvió null'))),
-          'image/jpeg', 0.86);
-      });
-      const jpeg = new Uint8Array(await blob.arrayBuffer());
-      paginas.push({ ancho: lienzo.width, alto: lienzo.height, jpeg });
-
-      ui.detalleCarga.textContent = (i + 1) + ' de ' + estado.paginas.length + ' páginas';
-      await esperar(0);
-    }
-
-    if (!paginas.length) throw new Error('No hay páginas para exportar');
-
-    const pdf = construirPDFEditado(paginas);
-    const nombre = (estado.pubAbierta ? estado.pubAbierta.titulo : 'revista') + '-editada.pdf';
-    descargarBlob(pdf, nombre);
-    ocultarOverlayCarga();
-    avisar('PDF exportado: ' + nombre + ' (' + formatearPeso(pdf.size) + ')');
-  } catch (e) {
-    console.error(e);
-    ocultarOverlayCarga();
-    avisar('No se pudo exportar el PDF: ' + ((e && e.message) || e), true);
-  } finally {
-    pararVigilante();
-    estado.exportando = false;
-    ui.btnExportar.disabled = false;
-  }
 }
 
 /* ========================= 19. VISTAS ===================================== */
@@ -3143,6 +2740,7 @@ function enlazarEventos() {
     }
   });
   ui.btnSalirEdicion.addEventListener('click', () => alternarModoEdicionSitio(false));
+  ui.btnGuardarEnLinea.addEventListener('click', guardarSitioEnLinea);
   ui.btnDescargarCambios.addEventListener('click', descargarCambiosSitio);
   ui.btnImportarCambios.addEventListener('click', () => ui.inputImportar.click());
   ui.inputImportar.addEventListener('change', () => {
@@ -3220,10 +2818,7 @@ function enlazarEventos() {
     document.execCommand('insertText', false, texto);
   });
 
-  document.addEventListener('input', (e) => {
-    onInputCapa(e);
-    onInputEditable(e);
-  });
+  document.addEventListener('input', onInputEditable);
   document.addEventListener('paste', onPasteEditable);
   // En edición, un texto editable dentro de un enlace no debe navegar.
   document.addEventListener('click', (e) => {
@@ -3240,34 +2835,7 @@ function enlazarEventos() {
     if (fig) pedirFoto(fig.dataset.foto);
   });
 
-  /* --- Editor de texto sobre páginas (capas) --- */
-  ui.btnEditarTexto.addEventListener('click', alternarModoTexto);
-  ui.btnExportar.addEventListener('click', exportarRevista);
-
-  // Fase de captura: mientras hay modo texto, los clics no llegan al libro
-  ui.zonaLibro.addEventListener('pointerdown', onPunteroAbajoZona, true);
-  ui.zonaLibro.addEventListener('click', onClicPagina, true);
-  window.addEventListener('pointermove', onPunteroMoverZona);
-  window.addEventListener('pointerup', onPunteroArribaZona);
-
-  ui.capaMas.addEventListener('click',
-    () => mutarCapaActual((c) => { c.fs = limite(c.fs + 0.3, 0.8, 40); }));
-  ui.capaMenos.addEventListener('click',
-    () => mutarCapaActual((c) => { c.fs = limite(c.fs - 0.3, 0.8, 40); }));
-  ui.capaNegrita.addEventListener('click',
-    () => mutarCapaActual((c) => { c.negrita = !c.negrita; }));
-  ui.capaCursiva.addEventListener('click',
-    () => mutarCapaActual((c) => { c.cursiva = !c.cursiva; }));
-  ui.capaCentrada.addEventListener('click',
-    () => mutarCapaActual((c) => { c.centrada = !c.centrada; }));
-  ui.capaFuente.addEventListener('change',
-    () => mutarCapaActual((c) => { c.fuente = ui.capaFuente.value; }));
-  ui.capaColor.addEventListener('input',
-    () => mutarCapaActual((c) => { c.color = ui.capaColor.value; }));
-  ui.capaDuplicar.addEventListener('click', duplicarCapa);
-  ui.capaBorrar.addEventListener('click', borrarCapaActual);
-  ui.capaDeshacer.addEventListener('click', deshacerCapas);
-
+  /* --- Controles del lector --- */
   ui.btnAnterior.addEventListener('click', () => { if (estado.flip) estado.flip.flipPrev(); });
   ui.btnSiguiente.addEventListener('click', () => { if (estado.flip) estado.flip.flipNext(); });
   ui.btnRail.addEventListener('click', alternarRail);
@@ -3288,7 +2856,7 @@ function enlazarEventos() {
     document.execCommand('insertText', false, texto);
   });
   ui.btnRestaurarInfo.addEventListener('click', () => {
-    try { localStorage.removeItem(claveDescripcionActual()); } catch { /* noop */ }
+    borrarDescripcionDe(estado.pubAbierta);
     ui.textoInfo.textContent = descripcionPorDefecto();
     avisar('Descripción restaurada.');
   });
@@ -3328,25 +2896,11 @@ function enlazarEventos() {
 
     if (e.key === 'Escape') {
       if (!ui.panelPlantillas.classList.contains('oculto')) { cerrarPanelPlantillas(); return; }
-      if (estado.modoTexto) { aplicarModoTexto(false); return; }
       if (ui.panelInfo.classList.contains('abierto')) { cerrarPanel(); return; }
       if (estado.modoEdicionSitio) { alternarModoEdicionSitio(false); return; }
     }
 
     if (estado.vista !== 'lector' || !estado.flip) return;
-
-    // Atajos del editor de texto sobre páginas
-    if (estado.modoTexto) {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault(); borrarCapaActual(); return;
-      }
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
-        e.preventDefault(); deshacerCapas(); return;
-      }
-      if (e.key === 'e' || e.key === 'E') { aplicarModoTexto(false); return; }
-      return;   // en modo texto las flechas no voltean el libro
-    }
-    if (e.key === 'e' || e.key === 'E') { aplicarModoTexto(true); return; }
 
     switch (e.key) {
       case 'ArrowRight':
@@ -3416,6 +2970,7 @@ async function iniciar() {
 
   capturarOriginales();
   cargarSitio();
+  await cargarSitioEnLinea();
   aplicarTema();
   aplicarEdicionesSitio();
 
@@ -3429,13 +2984,6 @@ async function iniciar() {
   renderizarChips();
   renderizarEstanteria();
   aplicarRuta();
-
-  // Base publicada del proyecto (si assets/ediciones.json existe)
-  cargarEdicionesPublicadas().then(() => {
-    aplicarTema();
-    aplicarEdicionesSitio();
-    if (estado.modoEdicionSitio) inyectarBotonesBloque();
-  });
 }
 
 /** Arranque: si algo falla, se registra y se pinta al menos la estantería. */
@@ -3480,7 +3028,12 @@ window.__interno = {
   calcularHuella: huellaClave,
   aplicarEdicionesSitio,
   cargarSitio,
+  cargarSitioEnLinea,
   guardarSitio,
+  guardarSitioEnLinea,
+  marcarEstadoGuardado,
+  descripcionDePublicacion,
+  guardarDescripcionDe,
   ocultarBloque,
   mostrarBloquesOcultos,
   restablecerSitio,
@@ -3493,20 +3046,5 @@ window.__interno = {
   abrirPanelPlantillas,
   cerrarPanelPlantillas,
   plantillas: PLANTILLAS_BLOQUE,
-  // editor de texto sobre páginas
-  aplicarModoTexto,
-  crearCapaEnPagina,
-  seleccionarCapa,
-  borrarCapaActual,
-  duplicarCapa,
-  deshacerCapas,
-  guardarCapas,
-  cargarCapasGuardadas,
-  colocarCapasPaginas,
-  actualizarMetricas,
-  sincronizarBarraCapas,
-  pintarPaginaExportada,
-  exportarRevista,
-  construirPDFEditado,
   cerrarAviso: () => ui.aviso.classList.remove('visible')
 };

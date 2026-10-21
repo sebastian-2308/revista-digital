@@ -1,0 +1,9 @@
+name = "noti-mision"
+compatibility_date = "2026-07-08"
+pages_build_output_dir = "."
+
+# Almacén compartido del contenido editado del sitio (textos, fotos,
+# descripciones y apariencia). Lo usa functions/api/sitio.js.
+[[kv_namespaces]]
+binding = "SITIO_KV"
+id = "a88f99c190a64043a11b8450f0c27b66"

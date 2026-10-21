@@ -1400,8 +1400,7 @@ body.modo-edicion [data-editable]:focus {
 
 body.modo-edicion [data-bloque] .bloque__ocultar { display: grid; }
 
-.barra-edicion,
-.barra-capas {
+.barra-edicion {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
@@ -1429,6 +1428,16 @@ body.modo-edicion [data-bloque] .bloque__ocultar { display: grid; }
 }
 
 .barra-edicion__ayuda strong { color: var(--texto-2); }
+
+.barra-edicion__estado {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--texto-3);
+}
+
+.barra-edicion__estado--ok { color: var(--exito, #79c98b); }
+.barra-edicion__estado--error { color: var(--peligro); }
 
 .barra-edicion__botones {
   display: flex;
@@ -1484,110 +1493,6 @@ body.modo-edicion [data-bloque] .bloque__ocultar { display: grid; }
     width: 100%;
     justify-content: center;
   }
-}
-
-/* ==================== 15. EDITOR DE TEXTO (CAPAS) ======================= */
-.barra-capas {
-  top: calc(var(--alto-barra) + 12px);
-  bottom: auto;
-  gap: 6px;
-  padding: 8px 10px;
-}
-
-.capas__fuente {
-  background: var(--superficie-2);
-  color: var(--texto);
-  border: 1px solid var(--borde);
-  border-radius: 8px;
-  padding: 7px 8px;
-  font: 500 0.82rem var(--fuente-texto);
-}
-
-.capas__tamano {
-  min-width: 52px;
-  text-align: center;
-  color: var(--texto-3);
-  font: 500 0.78rem var(--fuente-texto);
-}
-
-.capas__color {
-  width: 34px;
-  height: 34px;
-  padding: 2px;
-  background: var(--superficie-2);
-  border: 1px solid var(--borde);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.capas__sep {
-  width: 1px;
-  height: 22px;
-  background: var(--borde);
-  margin: 0 4px;
-}
-
-.pagina { position: relative; }
-
-.capa {
-  position: absolute;
-  z-index: 5;
-  cursor: move;
-  touch-action: none;
-}
-
-.capa__texto {
-  min-height: 1em;
-  line-height: 1.25;
-  white-space: pre-wrap;
-  word-break: break-word;
-  outline: none;
-}
-
-.capa:hover .capa__texto,
-.capa--seleccionada .capa__texto {
-  outline: 1px dashed rgba(255, 212, 59, 0.75);
-  outline-offset: 4px;
-}
-
-.capa__etiqueta {
-  position: absolute;
-  top: -14px;
-  left: 0;
-  display: none;
-  font: 600 9px var(--fuente-texto);
-  letter-spacing: 0.06em;
-  color: #14161c;
-  background: var(--acento);
-  border-radius: 4px;
-  padding: 2px 5px;
-  pointer-events: none;
-}
-
-.capa--seleccionada .capa__etiqueta { display: block; }
-
-body.modo-texto .zona-libro { cursor: crosshair; }
-body.modo-texto .capa { cursor: move; }
-body.modo-texto .capa__texto { cursor: text; }
-
-.chip-modo {
-  position: fixed;
-  top: calc(var(--alto-barra) + 66px);
-  right: 16px;
-  z-index: 70;
-  padding: 8px 14px;
-  background: var(--acento);
-  color: #14161c;
-  font: 600 0.8rem var(--fuente-texto);
-  border-radius: 999px;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
-}
-
-.chip-modo kbd {
-  background: rgba(20, 22, 28, 0.15);
-  border: none;
-  color: inherit;
-  padding: 0 4px;
 }
 
 /* ==================== 16. RESPONSIVE DEL SITIO ========================== */
@@ -3088,6 +2993,12 @@ body {
   z-index: 2;
 }
 
+.vista-previa__lado {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
 .vista-previa__media {
   display: grid;
   place-items: center;
@@ -3116,6 +3027,64 @@ body {
 .vista-previa__sin-portada .icono {
   width: 34px;
   height: 34px;
+}
+
+.vista-previa__muestra {
+  padding: 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie-2);
+}
+
+.vista-previa__muestra-titulo {
+  margin-bottom: 9px;
+  color: var(--texto-3);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.vista-previa__muestras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.vista-previa__muestras figure {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.vista-previa__muestras img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+  background: #ffffff;
+}
+
+.vista-previa__muestras figcaption {
+  color: var(--texto-3);
+  font-size: 0.67rem;
+  text-align: center;
+}
+
+.vista-previa__muestra-estado {
+  grid-column: 1 / -1;
+  padding: 18px 4px;
+  color: var(--texto-3);
+  font-size: 0.74rem;
+  text-align: center;
+}
+
+.vista-previa__muestra-nota {
+  margin-top: 9px;
+  color: var(--texto-3);
+  font-size: 0.67rem;
+  line-height: 1.4;
 }
 
 .vista-previa__datos {
@@ -3199,6 +3168,12 @@ body {
   .vista-previa__media {
     width: min(190px, 62vw);
     margin: 0 auto;
+  }
+
+  .vista-previa__lado { justify-items: center; }
+
+  .vista-previa__muestra {
+    width: min(340px, 100%);
   }
 
   .vista-previa__datos { padding-right: 0; }
