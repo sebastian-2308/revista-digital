@@ -4,9 +4,10 @@ Sitio completo del grupo juvenil **Noti‑Misión (JUMISMAC)** con biblioteca de
 revistas digitales: secciones navegables, configuración del sitio protegida
 con contraseña para el equipo y un lector flipbook con efecto 3D de paso de
 página. La interfaz vive en tres archivos principales (`index.html`,
-`styles.css`, `app.js`) y el guardado compartido en una pequeña API
-(`functions/api/sitio.js`); sin build ni dependencias locales: se abre y
-funciona.
+`styles.css`, `app.js`) y el contenido compartido en dos pequeñas APIs
+(`functions/api/sitio.js` y `functions/api/biblioteca.js`); sin build ni
+dependencias locales. La biblioteca y las ediciones se ven en todos los
+dispositivos.
 
 > El sitio se entrega con **el contenido del grupo ya escrito** —Inicio,
 > Testimonios, Nuestras misiones, Extensión, Consejos e Información— y
@@ -112,7 +113,8 @@ Estos detalles siguen los principios de `emilkowalski/skills`:
   dispositivos. **Descargar cambios** / **Importar cambios** siguen disponibles
   como copia JSON. «Restablecer» (dos toques) vuelve al contenido original y
   elimina los bloques agregados; después hay que pulsar **Guardar** para
-  aplicarlo en línea.
+  aplicarlo en línea. En la biblioteca, el equipo también puede **publicar** o
+  **retirar** revistas desde el mismo modo edición.
 - **Contraseña**: el botón «Configuración» pide la contraseña antes de abrir
   el editor; solo se pide una vez por visita (se olvida al recargar). En el
   código solo se guarda su huella (FNV‑1a), nunca la contraseña en texto
@@ -132,81 +134,77 @@ pulsar **Guardar**.
 
 ## Cómo ejecutar
 
-Abre `index.html` con un servidor local (por seguridad, los navegadores no
-dejan leer los PDF en local con `file://`):
+Para usar la biblioteca compartida y el guardado en línea hace falta el
+servidor de Cloudflare Pages Functions. Con Wrangler:
 
 ```bash
 cd revista-digital
-python -m http.server        # o: npx serve
-# abre http://localhost:8000
+npx wrangler pages dev . --port 8788
+# abre http://localhost:8788
 ```
 
-Si abres `index.html` con doble clic, la app lo detecta: la estantería nace
-vacía (sin revistas de ejemplo) y te ofrece **elegir el PDF a mano** para
-leerlo en la sesión.
+También puedes servir solo los archivos estáticos con `python -m http.server`
+o `npx serve`, pero entonces `/api/sitio` y `/api/biblioteca` no existen: la
+biblioteca no carga y no se puede guardar en línea.
+
+Si abres `index.html` con doble clic (`file://`), la app lo detecta y muestra
+un aviso: puedes arrastrar un PDF a la ventana para leerlo solo en ese
+dispositivo, pero la biblioteca compartida necesita Internet.
 
 ## Estructura
 
 ```
 revista-digital/
-├── index.html                 Marcado del sitio, secciones y barras de edición
-├── styles.css                 Estética editorial oscura, responsive, accesible
-├── app.js                     Toda la lógica (sitio, editores, biblioteca, flipbook)
-├── wrangler.toml              Configuración de Cloudflare Pages y KV
-├── functions/api/sitio.js     API de guardado compartido (GET/POST)
+├── index.html                    Marcado del sitio, secciones y barras de edición
+├── styles.css                    Estética editorial oscura, responsive, accesible
+├── app.js                        Toda la lógica (sitio, editores, biblioteca, flipbook)
+├── wrangler.toml                 Configuración de Cloudflare Pages y KV
+├── functions/api/sitio.js        API del contenido editado (GET/POST)
+├── functions/api/biblioteca.js   API de la biblioteca (listar, publicar, retirar)
+├── functions/api/biblioteca/     Descarga del PDF y de la portada
 └── assets/
-    ├── revistas.json          Catálogo de la estantería (vacío por defecto)
-    ├── pagina.mp3             Sonido de paso de página
-    └── LEEME.txt              Notas sobre los assets
+    ├── pagina.mp3                Sonido de paso de página
+    └── LEEME.txt                 Notas sobre los assets
 ```
 
-La biblioteca arranca sin revistas de ejemplo. Las publicaciones se crean
-desde la propia interfaz y quedan guardadas en el navegador; el catálogo de
-`assets/` solo se usa si quieres publicar ediciones fijas para todo el mundo.
+La biblioteca arranca vacía. Las revistas se publican desde la interfaz y se
+guardan en Cloudflare KV: aparecen en todos los navegadores y dispositivos.
 
 ## Biblioteca de revistas
 
-- **Estantería** de portadas con lomo, buscador por título o categoría, chips
-  de filtro y orden (lo publicado primero, luego el catálogo).
-- **Publicar revista**: botón *Publicar* o **arrastra un PDF** a la ventana.
-  Se le genera la portada automáticamente (PDF.js rasteriza la página 1) y
-  queda persistida en el navegador (IndexedDB, con respaldo en memoria).
+- **Estantería compartida** de portadas, buscador por título, categoría o
+  descripción, chips de filtro y contador de publicaciones.
+- **Solo el equipo publica**: los botones «Publicar revista» y «Retirar» solo
+  aparecen después de entrar en **Configuración** con la contraseña. Un
+  visitante nunca ve esas acciones.
+- **Publicar revista**: botón *Publicar*, arrastra un PDF (con la sesión de
+  editor abierta) o usa la tarjeta «Nueva publicación». El formulario pide
+  título, categoría y descripción, genera la portada con la primera página
+  (PDF.js) y sube el PDF completo.
+- **Límite de vista**: el lector monta como máximo **12 páginas** de cada PDF,
+  aunque el archivo tenga más. La barra superior y el panel lo indican
+  («Vista de 12 de N páginas»). El PDF original no se recorta.
+- **Descarga completa**: las fichas, la vista previa y la barra del lector
+  descargan el PDF completo tal como se publicó.
 - **Lector flipbook**: volteo 3D realista (StPageFlip), gestos táctiles,
   esquinas interactivas y **sonido de hoja** (`assets/pagina.mp3`).
 - **Navegación**: dock flotante con deslizador, indicador de páginas, riel de
   miniaturas, pantalla completa y atajos de teclado.
-- **Panel de ficha**: descripción editable (se guarda sola, por revista) y
-  datos del archivo.
-- **Vista previa y descarga**: cada ficha ofrece «Vista previa» (portada,
-  categoría, páginas, descripción y una muestra corta de las primeras páginas
-  del PDF) y «Descargar» para bajar el PDF original sin abrir el lector.
-- **Biblioteca vacía**: si aún no hay ediciones, se muestra un estado con la
-  acción «Publicar la primera» y se ocultan los filtros que no aportan nada.
+- **Panel de ficha**: descripción editable (por revista) y datos del archivo.
+- **Vista previa**: portada, categoría, páginas, descripción y una muestra de
+  las primeras páginas; no monta el libro completo.
+- **Biblioteca vacía**: muestra un mensaje distinto para visitantes («el
+  equipo puede publicarlas desde Configuración») y para el editor («publica la
+  primera»).
 
-## Añadir o quitar revistas del catálogo
+### Límites y almacenamiento
 
-La biblioteca ya no incluye las tres revistas de demostración. Para publicar
-una edición fija para todo el mundo:
-
-1. Pon el PDF en `assets/` y, si quieres, una portada en `assets/covers/`.
-2. Añade una entrada al array de `assets/revistas.json`:
-
-```json
-{
-  "id": "mi-revista-01",
-  "titulo": "Mi revista",
-  "numero": "N.º 01",
-  "categoria": "Diseño",
-  "fecha": "2026-10-01",
-  "pdf": "assets/mi-revista.pdf",
-  "portada": "assets/covers/mi-revista-01.jpg",
-  "paginas": 12,
-  "descripcion": "De qué va esta edición."
-}
-```
-
-Las revistas que publicas desde la interfaz no tocan este archivo: se guardan
-en tu navegador. En cada ficha propia aparece un ✕ para quitarla.
+- Cada PDF puede pesar hasta **50 MB**. El servidor lo divide en fragmentos de
+  20 MB para guardarlo en KV y los reconstruye en streaming al descargarlo.
+- La portada se guarda aparte (máximo 2 MB).
+- La lista se actualiza al instante para quien publica; Cloudflare KV puede
+  tardar hasta ~60 segundos en propagar el cambio al resto del mundo.
+- Si dos editores publican o guardan a la vez, gana el último guardado.
 
 ## Atajos de teclado
 
@@ -220,9 +218,10 @@ en tu navegador. En cada ficha propia aparece un ✕ para quitarla.
 
 ## Despliegue en Cloudflare Pages
 
-El sitio es estático salvo la pequeña API de guardado (`functions/api/sitio.js`),
-que usa un espacio de nombres KV para compartir los cambios entre
-dispositivos.
+El sitio es estático salvo las dos APIs de `functions/api/`: el contenido
+editado (`sitio.js`) y la biblioteca (`biblioteca.js` + `biblioteca/[id].js`).
+Las dos usan el mismo espacio de nombres KV (`SITIO_KV`) para que todo se vea
+en cualquier dispositivo.
 
 ```bash
 # Una sola vez: crear el espacio KV y copiar su id en wrangler.toml
@@ -232,17 +231,18 @@ npx wrangler kv namespace create noti-mision-sitio
 npx wrangler pages project create noti-mision --production-branch main
 
 # Publicar
-npx wrangler pages deploy . --project-name noti-mision --branch main
+npx wrangler pages deploy . --project-name noti-mision --branch main --commit-dirty=true
 ```
 
 `wrangler.toml` enlaza el espacio como `SITIO_KV` y `wrangler pages deploy`
-sube también la carpeta `functions/`. Comprueba que
-`https://noti-mision.pages.dev/api/sitio` responde `{"ok":true,"sitio":null}`
-antes del primer guardado.
+sube también la carpeta `functions/`. Antes de entregar, comprueba:
+
+- `https://noti-mision.pages.dev/api/sitio` → `{"ok":true,"sitio":...}`
+- `https://noti-mision.pages.dev/api/biblioteca` → `{"ok":true,"publicaciones":[...]}`
 
 Sin Cloudflare, el sitio sigue funcionando con la copia local del navegador y
-los botones **Descargar cambios** / **Importar cambios**; solo falta el
-guardado compartido.
+los botones **Descargar cambios** / **Importar cambios**; la biblioteca
+compartida y el guardado en línea no están disponibles.
 
 **Resiliencia del CDN:** PDF.js y page-flip se cargan con `async` desde
 jsDelivr y `app.js` nunca espera a ellos. Si el CDN está lento o bloqueado,
@@ -269,27 +269,31 @@ texto pierden contraste con el fondo.
 
 Los ajustes técnicos viven como constantes al principio de `app.js`: rutas de
 CDN y del sonido, secciones del sitio (`SECCIONES`), ancho máximo de
-rasterizado (`ANCHO_RASTER`), categoría de las publicaciones propias
-(`CATEGORIA_PROPIA`), tema de fábrica (`TEMA_POR_DEFECTO`) y claves de
-`localStorage`.
+rasterizado (`ANCHO_RASTER`), páginas visibles (`MAX_PAGINAS_VISIBLES`),
+tamaño máximo del PDF (`TAMANO_MAX_PDF`), tema de fábrica
+(`TEMA_POR_DEFECTO`) y claves de `localStorage`.
 
 ## Tecnologías
 
 - [PDF.js](https://mozilla.github.io/pdf.js/) 3.11.174 (jsDelivr)
 - [StPageFlip](https://github.com/nicm/stpageflip) 2.0.7 (jsDelivr)
-- IndexedDB para las publicaciones propias; localStorage para el borrador de
-  ediciones y Cloudflare KV (Pages Functions) para la versión compartida.
+- localStorage para el borrador de ediciones y Cloudflare KV (Pages Functions)
+  para el contenido compartido y los PDFs de la biblioteca (por fragmentos).
 - Sin frameworks: JavaScript puro, CSS puro, HTML semántico.
 
 ## Pruebas
 
-Suites jsdom (50 + 15 + 53 + 14 + 34 + 6 aserciones) que cubren estantería,
-filtros, apertura, navegación, panel, sonido, miniaturas, publicación, el modo
-`file://`, las rutas del sitio, la contraseña de la configuración (diálogo,
-error y desbloqueo), el modo edición del sitio (con la galería de bloques
-predefinidos), la resiliencia sin CDN, la biblioteca vacía, el panel de
-apariencia, la muestra corta de la vista previa, la ausencia del editor de
-texto sobre páginas y la sincronización del contenido en línea entre dos
-navegadores. Además, una comprobación visual con Chrome headless verifica
-números de sección, fuentes, trama de los huecos, ausencia de desbordes de
-390 a 1440 px, el panel lateral de edición y la muestra de la vista previa.
+Suites jsdom (**149 aserciones**): biblioteca compartida (listar, buscar,
+filtrar, publicar solo en modo edición, subir PDF y portada, retirar, errores
+de API), límite de 12 páginas visibles y descarga completa, lector, panel,
+sonido, miniaturas, `file://`, rutas del sitio, contraseña de Configuración,
+modo edición con galería de bloques, resiliencia sin CDN, vista previa corta,
+apariencia y sincronización del contenido en línea entre dos navegadores.
+
+Además, una prueba real con **Chrome headless** (20 comprobaciones) recorre el
+flujo completo: visitante sin permisos, contraseña, formulario de publicación,
+subida real a la API, portada generada, apertura del lector y retirada. Otras
+10 comprobaciones revisan la biblioteca y el formulario a 390 px (sin desbordes
+ni solapamientos). Y una comprobación visual (45 puntos) verifica números de
+sección, fuentes, trama de los huecos, ausencia de desbordes de 390 a 1440 px,
+el panel lateral de edición y la muestra de la vista previa.

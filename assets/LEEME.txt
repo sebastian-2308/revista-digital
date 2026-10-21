@@ -1,28 +1,26 @@
 BIBLIOTECA · REVISTAS DIGITALES  (assets/)
 ================================================================
 
-Aquí vive el contenido de la estantería:
+La biblioteca ya NO usa un catálogo JSON ni guarda los PDFs en el navegador.
+Ahora es compartida: el equipo publica las revistas desde la propia web y se
+guardan en Cloudflare KV (Pages Functions), así que se ven en todos los
+dispositivos.
 
-1) revistas.json  (catálogo)
-   Lista las revistas fijas que aparecen en la biblioteca: título, número,
-   categoría, fecha, nº de páginas, descripción, y las rutas del PDF y de la
-   portada. La biblioteca nace vacía: las ediciones se publican desde la
-   propia aplicación y se guardan en el navegador. Para añadir una revista
-   fija para todo el mundo, copia su PDF (y su portada, si quieres) aquí y
-   añade una entrada al array del JSON.
+1) pagina.mp3  (opcional)
+   Sonido realista de paso de página. Puedes sustituirlo por el tuyo con el
+   mismo nombre (o cambiar la ruta en la constante RUTA_SONIDO de app.js).
 
-2) pagina.mp3  (opcional)
-   Sonido realista de paso de página. Puedes sustituirlo por el tuyo
-   con el mismo nombre (o cambiar la ruta en la constante
-   RUTA_SONIDO de app.js).
+2) Publicar una revista
+   Entra en Configuración con la contraseña del equipo y pulsa «Publicar
+   revista» en la Biblioteca (o arrastra un PDF a la ventana). El formulario
+   pide título, categoría y descripción, genera la portada de la primera
+   página y sube el PDF completo. Límite: 50 MB por PDF.
 
-Además, desde la propia aplicación puedes PUBLICAR cualquier PDF
-(botón «Publicar revista» o arrastrándolo a la ventana): se le genera la
-portada automáticamente y queda guardado en IndexedDB. Cada ficha permite
-ver una vista previa (con una muestra corta de las primeras páginas) o
-descargar el PDF original.
+3) Qué ve el visitante
+   Puede hojear hasta 12 páginas de cada PDF y descargar el archivo completo.
+   Solo el equipo puede publicar o retirar revistas.
 
-La apariencia del sitio (colores, tipografías y formas) se edita desde
-Configuración → Apariencia y se guarda junto con los textos y las fotos.
-El botón «Guardar» de la barra de edición publica esos cambios en el
-almacén compartido (Cloudflare KV) para que se vean en otros dispositivos.
+4) Apariencia
+   Se edita desde Configuración → Apariencia y se guarda junto con los textos
+   y las fotos. El botón «Guardar» de la barra de edición publica esos cambios
+   en el almacén compartido para que se vean en otros dispositivos.

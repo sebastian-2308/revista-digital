@@ -9,12 +9,12 @@
      2. MODO EDICIÓN DEL SITIO: textos, fotos y bloques editables u
         ocultables, con guardado en el navegador y exportación/importación
         de un archivo JSON de cambios.
-     3. BIBLIOTECA de revistas (estantería con portadas, buscador y
-        categorías) construida desde assets/revistas.json.
-     4. PUBLICAR un PDF propio: portada generada con PDF.js y guardado en
-        el navegador (IndexedDB).
-     5. LECTOR tipo libro (StPageFlip): volteo 3D, sonido de página,
-        miniaturas, pantalla completa y panel de descripción editable.
+     3. BIBLIOTECA compartida (estantería con portadas, buscador y
+        categorías) servida por /api/biblioteca.
+     4. PUBLICAR un PDF (solo el equipo): portada generada con PDF.js, PDF
+        guardado en KV por fragmentos y descarga completa.
+     5. LECTOR tipo libro (StPageFlip): hasta 12 páginas visibles, sonido de
+        página, miniaturas, pantalla completa y panel de descripción editable.
 
    Requisitos: conexión a Internet la primera vez (CDN de PDF.js y page-flip).
    ========================================================================== */
@@ -34,8 +34,13 @@ const RUTA_SONIDO = 'assets/pagina.mp3';
 /** Ancho máximo (px) al rasterizar cada página del PDF. */
 const ANCHO_RASTER = 1700;
 
-/** Categoría que reciben las revistas publicadas por la persona usuaria. */
-const CATEGORIA_PROPIA = 'Mis revistas';
+/** Límite de páginas que se muestran en el lector. El PDF completo se
+    conserva intacto y se puede descargar desde la ficha o el lector. */
+const MAX_PAGINAS_VISIBLES = 12;
+
+/** Tamaño máximo del PDF que se puede publicar (50 MB). El servidor lo
+    divide en fragmentos para guardarlo en KV. */
+const TAMANO_MAX_PDF = 50 * 1024 * 1024;
 
 /** Claves de preferencias en localStorage. */
 const CLAVE_SONIDO = 'revista:sonido';
@@ -44,6 +49,13 @@ const CLAVE_SITIO = 'revista:sitio';
 
 /** Endpoint del guardado compartido (Cloudflare Pages Functions + KV). */
 const RUTA_API_SITIO = '/api/sitio';
+
+/** Endpoint de la biblioteca compartida (listado, subida y descarga). */
+const RUTA_API_BIBLIOTECA = '/api/biblioteca';
+
+/** Abriendo index.html con doble clic no hay API: se permite leer PDFs
+    locales, pero la biblioteca compartida no está disponible. */
+const SIN_API_BIBLIOTECA = location.protocol === 'file:';
 
 /** Huella FNV-1a de la contraseña que protege la configuración del sitio.
     Al ser un sitio estático esto no es seguridad real (el código es público):
@@ -94,20 +106,20 @@ const NOMBRES_SECCION = {
   biblioteca: 'Biblioteca'
 };
 
-/* ========================= 2. CATÁLOGO RESIDENTE ========================== */
-/* Copia de seguridad de assets/revistas.json para cuando el navegador no
-   permite leer archivos locales (file://) o falla la red. La biblioteca nace
-   vacía: el equipo publica sus propias revistas desde la interfaz. */
-
-const CATALOGO_RESIDENTE = [];
+/* ========================= 2. BIBLIOTECA COMPARTIDA ======================= */
+/* Las revistas viven en el servidor (/api/biblioteca) y las ve todo el mundo.
+   Solo el modo edición (con la contraseña del equipo) puede publicar o
+   retirar una revista. */
 
 /* ========================= 3. ESTADO DE LA APP ============================ */
 
 const estado = {
   vista: 'biblioteca',          // 'biblioteca' | 'lector'
   seccion: 'inicio',            // sección visible del sitio (hash)
-  catalogo: [],                 // revistas del manifiesto
-  publicadas: [],               // revistas publicadas por la persona (IndexedDB)
+  biblioteca: [],               // revistas compartidas (API /api/biblioteca)
+  bibliotecaCargada: false,
+  bibliotecaError: false,
+  bibliotecaSinApi: SIN_API_BIBLIOTECA,
   filtro: { texto: '', categoria: '' },
 
   // modo edición del sitio
@@ -120,6 +132,7 @@ const estado = {
   // lectura actual
   doc: null,                    // documento pdf.js abierto
   paginas: [],                  // vistas de página + estado de pintado
+  totalPaginasPdf: 0,           // páginas reales del PDF (puede superar 12)
   imgs: [],                     // <img> de cada página del flipbook
   flip: null,                   // instancia de St.PageFlip
   anchoBase: 1125,              // ancho de página en puntos (del PDF)
@@ -131,6 +144,9 @@ const estado = {
   publicando: false,
   cargandoLocal: false,
 
+  // publicación en la biblioteca compartida
+  archivoPublicar: null,
+
   // sonido
   audio: null,
   sonidoActivo: true,
@@ -140,9 +156,7 @@ const estado = {
   railVisible: false,
   generandoMiniaturas: false,
 
-  divs: [],                      // <div class="pagina"> originales del libro
-
-  guardadoLocal: true            // false si IndexedDB no está disponible
+  divs: []                       // <div class="pagina"> originales del libro
 };
 
 /* ========================= 4. UTILIDADES ================================== */
@@ -189,10 +203,22 @@ const ui = {
   bibliotecaVacia: $('#bibliotecaVacia'),
   bibliotecaVacioTexto: $('#bibliotecaVacioTexto'),
   inputBusqueda: $('#inputBusqueda'),
-  inputPublicar: $('#inputPublicar'),
   btnPublicar: $('#btnPublicar'),
   btnPublicarVacio: $('#btnPublicarVacio'),
+  btnRecargarBiblioteca: $('#btnRecargarBiblioteca'),
   btnVerTodas: $('#btnVerTodas'),
+  modalPublicar: $('#modalPublicar'),
+  formPublicar: $('#formPublicar'),
+  btnCerrarPublicar: $('#btnCerrarPublicar'),
+  btnCancelarPublicar: $('#btnCancelarPublicar'),
+  btnConfirmarPublicar: $('#btnConfirmarPublicar'),
+  pubArchivo: $('#pubArchivo'),
+  pubArchivoInfo: $('#pubArchivoInfo'),
+  pubTitulo: $('#pubTitulo'),
+  pubCategoria: $('#pubCategoria'),
+  pubDescripcion: $('#pubDescripcion'),
+  pubEstado: $('#pubEstado'),
+  pubError: $('#pubError'),
   modalVistaPrevia: $('#modalVistaPrevia'),
   previaPortada: $('#previaPortada'),
   previaSinPortada: $('#previaSinPortada'),
@@ -203,6 +229,7 @@ const ui = {
   previaAyudaEdicion: $('#previaAyudaEdicion'),
   previaMuestra: $('#previaMuestra'),
   previaMuestras: $('#previaMuestras'),
+  previaMuestraNota: $('#previaMuestraNota'),
   btnLeerPrevia: $('#btnLeerPrevia'),
   btnDescargarPrevia: $('#btnDescargarPrevia'),
   btnCerrarPrevia: $('#btnCerrarPrevia'),
@@ -213,6 +240,8 @@ const ui = {
   btnVolver: $('#btnVolver'),
   kickerEdicion: $('#kickerEdicion'),
   tituloEdicion: $('#tituloEdicion'),
+  limiteLectura: $('#limiteLectura'),
+  btnDescargarLector: $('#btnDescargarLector'),
   btnSonido: $('#btnSonido'),
   btnInfo: $('#btnInfo'),
   btnAnterior: $('#btnAnterior'),
@@ -268,6 +297,16 @@ const ui = {
 
 /** Limita un número a un rango. */
 const limite = (valor, min, max) => Math.min(max, Math.max(min, valor));
+
+/** Escapa texto para insertarlo con seguridad dentro de HTML. */
+function escaparHTML(valor) {
+  return String(valor == null ? '' : valor)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 /* --- Tema: normalización, mezclas y aplicación de variables --------------- */
 
@@ -486,6 +525,11 @@ function avisar(texto, esError) {
   temporizadorAviso = setTimeout(() => ui.aviso.classList.remove('visible'), 5200);
 }
 
+function cerrarAviso() {
+  clearTimeout(temporizadorAviso);
+  ui.aviso.classList.remove('visible');
+}
+
 function mostrarOverlayCarga(texto, detalle) {
   ui.textoCarga.textContent = texto || 'Cargando…';
   ui.detalleCarga.textContent = detalle || '';
@@ -530,92 +574,58 @@ function vigilanteCarga(segundos) {
   return () => clearTimeout(id);
 }
 
-/* ========================= 6. ALMACÉN DE PUBLICACIONES ==================== */
-/* Las revistas que publicas se guardan en IndexedDB (con respaldo en
-   memoria si el navegador no la ofrece, p. ej. algunos file://). */
+/* ========================= 6. BIBLIOTECA COMPARTIDA ====================== */
+/* La lista se pide a /api/biblioteca. Los PDFs y las portadas los sirve la
+   misma API; el lector solo descarga el archivo cuando alguien abre una
+   revista. */
 
-const NOMBRE_DB = 'biblioteca-revistas';
-const VERSION_DB = 1;
+let cargaBibliotecaEnCurso = false;
 
-function abrirBaseDatos() {
-  return new Promise((resolver, rechazar) => {
-    if (!('indexedDB' in window)) {
-      rechazar(new Error('sin-indexeddb'));
-      return;
+async function cargarBiblioteca() {
+  if (cargaBibliotecaEnCurso) return;
+  if (SIN_API_BIBLIOTECA) {
+    estado.biblioteca = [];
+    estado.bibliotecaCargada = true;
+    estado.bibliotecaError = false;
+    renderizarChips();
+    renderizarEstanteria();
+    return;
+  }
+  cargaBibliotecaEnCurso = true;
+  estado.bibliotecaError = false;
+  try {
+    const respuesta = await fetch(RUTA_API_BIBLIOTECA + '?t=' + Date.now(), {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' }
+    });
+    if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+    const datos = await respuesta.json();
+    if (!datos || !Array.isArray(datos.publicaciones)) {
+      throw new Error('respuesta ilegible');
     }
-    const peticion = indexedDB.open(NOMBRE_DB, VERSION_DB);
-    peticion.onupgradeneeded = () => {
-      const bd = peticion.result;
-      if (!bd.objectStoreNames.contains('publicaciones')) {
-        bd.createObjectStore('publicaciones', { keyPath: 'id' });
-      }
-    };
-    peticion.onsuccess = () => resolver(peticion.result);
-    peticion.onerror = () => rechazar(peticion.error || new Error('idb'));
-  });
-}
-
-/** Devuelve todas las publicaciones propias (o [] si no hay soporte). */
-async function listarPublicaciones() {
-  try {
-    const bd = await abrirBaseDatos();
-    const resultado = await new Promise((resolver, rechazar) => {
-      const peticion = bd.transaction('publicaciones', 'readonly')
-        .objectStore('publicaciones').getAll();
-      peticion.onsuccess = () => resolver(peticion.result || []);
-      peticion.onerror = () => rechazar(peticion.error);
-    });
-    bd.close();
-    return resultado;
-  } catch {
-    estado.guardadoLocal = false;   // solo memoria de la sesión
-    return [];
-  }
-}
-
-/** Guarda (o actualiza) una publicación propia. */
-async function guardarPublicacion(pub) {
-  try {
-    const bd = await abrirBaseDatos();
-    await new Promise((resolver, rechazar) => {
-      const transaccion = bd.transaction('publicaciones', 'readwrite');
-      transaccion.objectStore('publicaciones').put(pub);
-      transaccion.oncomplete = () => resolver();
-      transaccion.onerror = () => rechazar(transaccion.error);
-    });
-    bd.close();
-  } catch {
-    estado.guardadoLocal = false;
-  }
-}
-
-/** Elimina una publicación propia. */
-async function borrarPublicacion(id) {
-  try {
-    const bd = await abrirBaseDatos();
-    await new Promise((resolver, rechazar) => {
-      const transaccion = bd.transaction('publicaciones', 'readwrite');
-      transaccion.objectStore('publicaciones').delete(id);
-      transaccion.oncomplete = () => resolver();
-      transaccion.onerror = () => rechazar(transaccion.error);
-    });
-    bd.close();
-  } catch {
-    estado.guardadoLocal = false;
+    estado.biblioteca = datos.publicaciones.filter((p) => p && p.id && p.pdf);
+  } catch (e) {
+    console.warn('No se pudo cargar la biblioteca:', e);
+    estado.bibliotecaError = true;
+  } finally {
+    cargaBibliotecaEnCurso = false;
+    estado.bibliotecaCargada = true;
+    renderizarChips();
+    renderizarEstanteria();
   }
 }
 
 /* ========================= 7. VISTA BIBLIOTECA ============================ */
 
-/** Catálogo completo: primero lo publicado, luego el manifiesto. */
+/** Catálogo completo de la biblioteca compartida. */
 function catalogoCompleto() {
-  return estado.publicadas.concat(estado.catalogo);
+  return estado.biblioteca;
 }
 
 /** Texto normalizado para el buscador. */
 function textoBusqueda(pub) {
-  return ((pub.titulo || '') + ' ' + (pub.categoria || '') + ' ' + (pub.numero || ''))
-    .toLowerCase();
+  return [pub.titulo, pub.categoria, pub.descripcion, pub.numero]
+    .filter(Boolean).join(' ').toLowerCase();
 }
 
 /** Revistas que pasan los filtros activos (búsqueda + categoría). */
@@ -629,13 +639,17 @@ function filtradas() {
   });
 }
 
-/** Dibuja los chips de categorías a partir del catálogo real. */
+/** Dibuja los chips de categorías a partir de la biblioteca real. */
 function renderizarChips() {
   const categorias = [];
   for (const pub of catalogoCompleto()) {
     if (pub.categoria && !categorias.includes(pub.categoria)) categorias.push(pub.categoria);
   }
   ui.chipsCategorias.innerHTML = '';
+
+  if (estado.filtro.categoria && !categorias.includes(estado.filtro.categoria)) {
+    estado.filtro.categoria = '';
+  }
 
   const crear = (etiqueta, valor) => {
     const chip = document.createElement('button');
@@ -655,36 +669,57 @@ function renderizarChips() {
   crear('Todas', '');
   for (const cat of categorias) crear(cat, cat);
 
-  // Sin revistas, los filtros no aportan nada.
   ui.chipsCategorias.hidden = catalogoCompleto().length === 0;
+}
+
+/** Muestra u oculta las acciones de publicación según el modo edición. */
+function actualizarControlesBiblioteca() {
+  const admin = estado.modoEdicionSitio && !SIN_API_BIBLIOTECA;
+  ui.btnPublicar.hidden = !admin;
+  document.body.classList.toggle('biblioteca-editable', admin);
 }
 
 /** Genera una ficha de revista en la estantería. */
 function crearFicha(pub, indice) {
+  const total = Number(pub.paginas) || 0;
+  const visibles = total ? Math.min(total, MAX_PAGINAS_VISIBLES) : 0;
   const ficha = document.createElement('article');
-  ficha.className = 'ficha' + (pub.propia ? ' ficha--propia' : '');
+  ficha.className = 'ficha';
+  ficha.dataset.id = pub.id;
   ficha.setAttribute('role', 'button');
   ficha.setAttribute('tabindex', '0');
   ficha.setAttribute('aria-label',
-    'Abrir ' + pub.titulo + (pub.numero ? ', ' + pub.numero : '') +
-    (pub.paginas ? ', ' + pub.paginas + ' páginas' : ''));
+    'Abrir ' + (pub.titulo || 'revista') +
+    (total ? ', ' + visibles + ' de ' + total + ' páginas' : ''));
   ficha.style.setProperty('--i', String(indice));
 
-  const meta = [pub.numero, pub.paginas ? pub.paginas + ' pág.' : null]
+  const paginasTexto = total
+    ? (total > MAX_PAGINAS_VISIBLES
+      ? MAX_PAGINAS_VISIBLES + ' de ' + total + ' págs.'
+      : total + (total === 1 ? ' página' : ' páginas'))
+    : '';
+  const meta = [paginasTexto, pub.fecha ? formatearFecha(pub.fecha) : null]
     .filter(Boolean).join(' · ');
+
+  const portada = pub.portada
+    ? '<img class="ficha__portada" src="' + escaparHTML(pub.portada) +
+      '" alt="" loading="lazy" decoding="async">'
+    : '<span class="ficha__portada-texto">Sin portada</span>';
 
   ficha.innerHTML =
     '<div class="ficha__portada-wrap">' +
-      (pub.portada
-        ? '<img class="ficha__portada" src="' + pub.portada + '" alt="" loading="lazy" decoding="async">'
-        : '<span class="ficha__portada-texto">Sin portada</span>') +
-      (pub.categoria ? '<span class="ficha__cat">' + pub.categoria + '</span>' : '') +
-      (pub.propia ? '<span class="ficha__sello">Tu publicación</span>' : '') +
+      portada +
+      (pub.categoria
+        ? '<span class="ficha__cat">' + escaparHTML(pub.categoria) + '</span>'
+        : '') +
+      (total > MAX_PAGINAS_VISIBLES
+        ? '<span class="ficha__limite">Vista de ' + MAX_PAGINAS_VISIBLES + '</span>'
+        : '') +
     '</div>' +
-    '<h3 class="ficha__titulo">' + pub.titulo + '</h3>' +
-    '<p class="ficha__meta">' + meta + '</p>';
+    '<h3 class="ficha__titulo">' + escaparHTML(pub.titulo || 'Revista') + '</h3>' +
+    '<p class="ficha__meta">' + escaparHTML(meta) + '</p>';
 
-  // Acciones rápidas: ver la ficha antes de abrir y descargar el PDF original.
+  // Acciones rápidas: ver la ficha antes de abrir y descargar el PDF completo.
   const acciones = document.createElement('div');
   acciones.className = 'ficha__acciones';
 
@@ -695,7 +730,7 @@ function crearFicha(pub, indice) {
     '<svg viewBox="0 0 24 24" class="icono" aria-hidden="true">' +
     '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>' +
     '<circle cx="12" cy="12" r="2.6"/></svg><span>Vista previa</span>';
-  btnPrevia.setAttribute('aria-label', 'Vista previa de «' + pub.titulo + '»');
+  btnPrevia.setAttribute('aria-label', 'Vista previa de «' + (pub.titulo || 'revista') + '»');
   btnPrevia.addEventListener('click', (e) => {
     e.stopPropagation();
     abrirVistaPrevia(pub);
@@ -709,7 +744,7 @@ function crearFicha(pub, indice) {
     '<svg viewBox="0 0 24 24" class="icono" aria-hidden="true">' +
     '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>' +
     '<path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg><span>Descargar</span>';
-  btnDescargar.setAttribute('aria-label', 'Descargar el PDF de «' + pub.titulo + '»');
+  btnDescargar.setAttribute('aria-label', 'Descargar el PDF completo de «' + (pub.titulo || 'revista') + '»');
   btnDescargar.addEventListener('click', (e) => {
     e.stopPropagation();
     descargarPublicacion(pub);
@@ -720,33 +755,34 @@ function crearFicha(pub, indice) {
   acciones.appendChild(btnDescargar);
   ficha.appendChild(acciones);
 
-  // Quitar publicación propia (confirmación en dos toques)
-  if (pub.propia) {
+  // Retirar de la biblioteca compartida: solo en modo edición.
+  if (estado.modoEdicionSitio) {
     const btnQuitar = document.createElement('button');
     btnQuitar.type = 'button';
     btnQuitar.className = 'ficha__quitar';
-    btnQuitar.title = 'Quitar de la biblioteca';
-    btnQuitar.setAttribute('aria-label', 'Quitar «' + pub.titulo + '» de la biblioteca');
+    btnQuitar.title = 'Retirar de la biblioteca';
+    btnQuitar.setAttribute('aria-label', 'Retirar «' + (pub.titulo || 'revista') + '» de la biblioteca');
     btnQuitar.innerHTML =
       '<svg viewBox="0 0 24 24" class="icono" aria-hidden="true">' +
       '<path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
     let pendiente = false;
     let temp = null;
-    btnQuitar.addEventListener('click', (e) => {
+    btnQuitar.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (!pendiente) {
         pendiente = true;
-        btnQuitar.style.background = 'rgba(80, 20, 16, 0.95)';
+        btnQuitar.classList.add('ficha__quitar--confirmar');
         btnQuitar.title = 'Pulsa otra vez para confirmar';
-        temp = setTimeout(() => { pendiente = false; btnQuitar.style.background = ''; }, 3200);
+        temp = setTimeout(() => {
+          pendiente = false;
+          btnQuitar.classList.remove('ficha__quitar--confirmar');
+          btnQuitar.title = 'Retirar de la biblioteca';
+        }, 3200);
         return;
       }
       clearTimeout(temp);
-      estado.publicadas = estado.publicadas.filter((p) => p.id !== pub.id);
-      borrarPublicacion(pub.id);
-      renderizarChips();
-      renderizarEstanteria();
-      avisar('«' + pub.titulo + '» se ha quitado de la biblioteca.');
+      btnQuitar.disabled = true;
+      await eliminarPublicacionCompartida(pub);
     });
     ficha.appendChild(btnQuitar);
   }
@@ -759,37 +795,50 @@ function crearFicha(pub, indice) {
   return ficha;
 }
 
-/** Dibuja la estantería completa según los filtros. */
-function renderizarEstanteria() {
-  const visibles = filtradas();
-  const total = catalogoCompleto().length;
-
-  ui.estanteria.innerHTML = '';
-
-  // Ficha de «publicar» siempre la primera
-  const fichaNueva = document.createElement('article');
-  fichaNueva.className = 'ficha ficha--nueva';
-  fichaNueva.setAttribute('role', 'button');
-  fichaNueva.setAttribute('tabindex', '0');
-  fichaNueva.setAttribute('aria-label', 'Publicar una revista nueva desde un PDF');
-  fichaNueva.innerHTML =
+/** Ficha especial para publicar (solo aparece en modo edición). */
+function crearFichaPublicar(indice) {
+  const ficha = document.createElement('article');
+  ficha.className = 'ficha ficha--nueva';
+  ficha.setAttribute('role', 'button');
+  ficha.setAttribute('tabindex', '0');
+  ficha.setAttribute('aria-label', 'Publicar una revista nueva desde un PDF');
+  ficha.style.setProperty('--i', String(indice));
+  ficha.innerHTML =
     '<div class="ficha__portada-wrap">' +
       '<svg viewBox="0 0 24 24" class="icono" aria-hidden="true">' +
         '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>' +
         '<path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>' +
-      '<span class="ficha__portada-texto">Publicar revista<br>arrastra un PDF o pulsa aquí</span>' +
+      '<span class="ficha__portada-texto">Publicar revista<br>PDF hasta 50 MB</span>' +
     '</div>' +
     '<h3 class="ficha__titulo">Nueva publicación</h3>' +
-    '<p class="ficha__meta">Se guardará en este navegador</p>';
-  const lanzar = () => ui.inputPublicar.click();
-  fichaNueva.addEventListener('click', lanzar);
-  fichaNueva.addEventListener('keydown', (e) => {
+    '<p class="ficha__meta">Visible para todo el mundo</p>';
+  const lanzar = () => abrirModalPublicar();
+  ficha.addEventListener('click', lanzar);
+  ficha.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lanzar(); }
   });
-  // Con la biblioteca vacía, el estado vacío ya ofrece «Publicar la primera»:
-  // evitamos duplicar la misma acción con una ficha más.
-  if (total > 0) ui.estanteria.appendChild(fichaNueva);
+  return ficha;
+}
 
+/** Dibuja la estantería completa según los filtros. */
+function renderizarEstanteria() {
+  const visibles = filtradas();
+  const total = catalogoCompleto().length;
+  const admin = estado.modoEdicionSitio && !SIN_API_BIBLIOTECA;
+
+  ui.estanteria.innerHTML = '';
+
+  if (!estado.bibliotecaCargada) {
+    ui.contarRevistas.textContent = 'Cargando biblioteca…';
+    ui.bibliotecaVacia.hidden = true;
+    ui.chipsCategorias.hidden = true;
+    actualizarControlesBiblioteca();
+    return;
+  }
+
+  if (total > 0 && admin) {
+    ui.estanteria.appendChild(crearFichaPublicar(0));
+  }
   visibles.forEach((pub, i) => ui.estanteria.appendChild(crearFicha(pub, i + 1)));
 
   ui.bibliotecaVacia.hidden = visibles.length > 0;
@@ -797,11 +846,28 @@ function renderizarEstanteria() {
   const filtrando = !!(estado.filtro.texto.trim() || estado.filtro.categoria);
   const palabra = total === 1 ? 'publicación' : 'publicaciones';
 
-  if (total === 0) {
-    ui.contarRevistas.textContent = 'Aún no hay publicaciones';
+  if (SIN_API_BIBLIOTECA) {
+    ui.contarRevistas.textContent = 'Biblioteca no disponible';
     ui.bibliotecaVacioTexto.textContent =
-      'La biblioteca está vacía. Publica la primera revista para empezar.';
-    ui.btnPublicarVacio.hidden = false;
+      'Abre el sitio desde Internet para ver la biblioteca compartida. ' +
+      'También puedes arrastrar un PDF aquí para leerlo solo en este dispositivo.';
+    ui.btnPublicarVacio.hidden = true;
+    ui.btnRecargarBiblioteca.hidden = true;
+    ui.btnVerTodas.hidden = true;
+  } else if (estado.bibliotecaError) {
+    ui.contarRevistas.textContent = 'Biblioteca no disponible';
+    ui.bibliotecaVacioTexto.textContent =
+      'No se pudo cargar la biblioteca. Revisa la conexión e inténtalo de nuevo.';
+    ui.btnPublicarVacio.hidden = true;
+    ui.btnRecargarBiblioteca.hidden = false;
+    ui.btnVerTodas.hidden = true;
+  } else if (total === 0) {
+    ui.contarRevistas.textContent = 'Aún no hay publicaciones';
+    ui.bibliotecaVacioTexto.textContent = admin
+      ? 'La biblioteca está vacía. Publica la primera revista para empezar.'
+      : 'La biblioteca todavía no tiene revistas. El equipo puede publicarlas desde Configuración.';
+    ui.btnPublicarVacio.hidden = !admin;
+    ui.btnRecargarBiblioteca.hidden = true;
     ui.btnVerTodas.hidden = true;
   } else {
     ui.contarRevistas.textContent = filtrando
@@ -809,7 +875,36 @@ function renderizarEstanteria() {
       : total + ' ' + palabra;
     ui.bibliotecaVacioTexto.textContent = 'Ninguna revista coincide con tu búsqueda.';
     ui.btnPublicarVacio.hidden = true;
-    ui.btnVerTodas.hidden = false;
+    ui.btnRecargarBiblioteca.hidden = true;
+    ui.btnVerTodas.hidden = !filtrando;
+  }
+
+  actualizarControlesBiblioteca();
+}
+
+/** Retira una revista del almacén compartido (solo editor). */
+async function eliminarPublicacionCompartida(pub) {
+  try {
+    const respuesta = await fetch(
+      RUTA_API_BIBLIOTECA + '?id=' + encodeURIComponent(pub.id),
+      {
+        method: 'DELETE',
+        cache: 'no-store',
+        headers: { 'X-Clave-Editor': HUELLA_CLAVE_SITIO }
+      }
+    );
+    const datos = await respuesta.json().catch(() => null);
+    if (!respuesta.ok) {
+      throw new Error((datos && datos.error) || ('HTTP ' + respuesta.status));
+    }
+    estado.biblioteca = estado.biblioteca.filter((p) => p.id !== pub.id);
+    renderizarChips();
+    renderizarEstanteria();
+    avisar('«' + (pub.titulo || 'La revista') + '» se retiró de la biblioteca.');
+    return true;
+  } catch (e) {
+    avisar('No se pudo retirar la revista: ' + ((e && e.message) || e), true);
+    return false;
   }
 }
 
@@ -842,9 +937,8 @@ async function obtenerPdfjs(msMax) {
 }
 
 /** Genera portada (dataURL) y nº de páginas de un PDF. */
-async function generarPortada(bytesCopia) {
-  const pdfjs = window.pdfjsLib;
-  if (!pdfjs) throw new Error('PDF.js no está disponible.');
+async function generarPortada(bytesCopia, msMax) {
+  const pdfjs = await obtenerPdfjs(msMax);
   const carga = pdfjs.getDocument({ data: bytesCopia });
   const doc = await carga.promise;
   const pagina = await doc.getPage(1);
@@ -866,66 +960,200 @@ async function generarPortada(bytesCopia) {
   return { portada: url, paginas };
 }
 
-/** Publica un archivo PDF en la biblioteca (con portada automática). */
-async function publicarPDF(archivo) {
-  if (!archivo) return;
-  const esPdf = archivo.type === 'application/pdf' || /\.pdf$/i.test(archivo.name || '');
-  if (!esPdf) { avisar('Solo se pueden publicar archivos PDF.', true); return; }
+/** Convierte un dataURL de imagen en un Blob para subirlo. */
+function dataURLABlob(dataURL) {
+  const partes = String(dataURL || '').split(',');
+  if (partes.length !== 2) return null;
+  const tipo = (partes[0].match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+  const binario = atob(partes[1]);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  return new Blob([bytes], { type: tipo });
+}
+
+function archivoEsPdf(archivo) {
+  return !!archivo && (archivo.type === 'application/pdf' ||
+    /\.pdf$/i.test(archivo.name || ''));
+}
+
+function cerrarModalPublicar(forzar) {
+  if (!ui.modalPublicar) return;
+  if (estado.publicando && !forzar) return;
+  ui.modalPublicar.classList.add('oculto');
+  ui.formPublicar.reset();
+  estado.archivoPublicar = null;
+  ui.pubArchivoInfo.textContent = '';
+  ui.pubEstado.textContent = '';
+  ui.pubError.hidden = true;
+  ui.pubError.textContent = '';
+}
+
+function actualizarInfoArchivoPublicar(archivo) {
+  ui.pubError.hidden = true;
+  ui.pubError.textContent = '';
+  if (!archivo) {
+    estado.archivoPublicar = null;
+    ui.pubArchivoInfo.textContent = '';
+    return false;
+  }
+  if (!archivoEsPdf(archivo)) {
+    estado.archivoPublicar = null;
+    ui.pubArchivoInfo.textContent = '';
+    ui.pubError.textContent = 'Solo se pueden publicar archivos PDF.';
+    ui.pubError.hidden = false;
+    return false;
+  }
+  if (archivo.size > TAMANO_MAX_PDF) {
+    estado.archivoPublicar = null;
+    ui.pubArchivoInfo.textContent = '';
+    ui.pubError.textContent = 'El PDF supera los 50 MB permitidos.';
+    ui.pubError.hidden = false;
+    return false;
+  }
+  estado.archivoPublicar = archivo;
+  ui.pubArchivoInfo.textContent =
+    archivo.name + ' · ' + formatearPeso(archivo.size);
+  if (!ui.pubTitulo.value.trim()) {
+    ui.pubTitulo.value = bonitarNombre(archivo.name);
+  }
+  return true;
+}
+
+/** Abre el formulario de publicación. Solo el modo edición puede usarlo. */
+function abrirModalPublicar(archivo) {
+  if (SIN_API_BIBLIOTECA) {
+    avisar('La biblioteca compartida necesita abrir el sitio desde Internet.', true);
+    return;
+  }
+  if (!estado.modoEdicionSitio) {
+    avisar('Solo el equipo puede publicar revistas. Entra en Configuración.', true);
+    return;
+  }
+  cerrarAviso();
+  ui.formPublicar.reset();
+  estado.archivoPublicar = null;
+  ui.pubEstado.textContent = '';
+  ui.pubError.hidden = true;
+  ui.pubError.textContent = '';
+  ui.pubArchivoInfo.textContent = '';
+
+  if (archivo) {
+    const valido = actualizarInfoArchivoPublicar(archivo);
+    if (!valido) {
+      setTimeout(() => ui.pubArchivo.focus(), 30);
+    }
+  }
+
+  ui.modalPublicar.classList.remove('oculto');
+  setTimeout(() => {
+    if (estado.archivoPublicar) ui.pubTitulo.focus();
+    else ui.pubArchivo.focus();
+  }, 30);
+}
+
+/** Publica un PDF en la biblioteca compartida con título, categoría y portada. */
+async function publicarPDF(archivo, datosFormulario) {
+  datosFormulario = datosFormulario || {};
+  if (SIN_API_BIBLIOTECA) {
+    avisar('La biblioteca compartida necesita abrir el sitio desde Internet.', true);
+    return;
+  }
+  if (!estado.modoEdicionSitio) {
+    avisar('Solo el equipo puede publicar revistas. Entra en Configuración.', true);
+    return;
+  }
+  if (!archivo) {
+    ui.pubError.textContent = 'Elige un archivo PDF.';
+    ui.pubError.hidden = false;
+    return;
+  }
+  if (!archivoEsPdf(archivo)) {
+    ui.pubError.textContent = 'Solo se pueden publicar archivos PDF.';
+    ui.pubError.hidden = false;
+    return;
+  }
+  if (archivo.size > TAMANO_MAX_PDF) {
+    ui.pubError.textContent = 'El PDF supera los 50 MB permitidos.';
+    ui.pubError.hidden = false;
+    return;
+  }
   if (estado.publicando) return;
 
   estado.publicando = true;
-  mostrarOverlayCarga('Preparando «' + archivo.name + '»…', 'Generando portada y ficha');
-  const pararVigilante = vigilanteCarga(60);
+  ui.btnConfirmarPublicar.disabled = true;
+  ui.btnCerrarPublicar.disabled = true;
+  ui.btnCancelarPublicar.disabled = true;
+  ui.pubError.hidden = true;
+  ui.pubEstado.textContent = 'Leyendo el PDF…';
+
+  const control = new AbortController();
+  const limiteTiempo = setTimeout(() => control.abort(), 120000);
 
   try {
-    // Espera a que PDF.js (CDN asíncrono) esté listo; si no llega, el
-    // catch inferior avisa, cierra el overlay y reactiva el botón.
-    await obtenerPdfjs();
-
     const bytes = new Uint8Array(await archivo.arrayBuffer());
-
-    let portada = '';
-    let paginas = 0;
-    try {
-      // copia: pdf.js puede consumir el buffer que recibe
-      const r = await generarPortada(bytes.slice(0));
-      portada = r.portada;
-      paginas = r.paginas;
-    } catch (e) {
-      console.warn('No se pudo generar la portada:', e);
-      avisar('No se pudo generar la portada; la ficha quedará sin imagen.');
+    const cabecera = String.fromCharCode.apply(null, bytes.slice(0, 5));
+    if (cabecera !== '%PDF-') {
+      throw new Error('El archivo no parece un PDF válido.');
     }
 
-    const hoy = new Date();
-    const pub = {
-      id: 'propia-' + hoy.getTime(),
-      titulo: bonitarNombre(archivo.name),
-      numero: 'PDF propio',
-      categoria: CATEGORIA_PROPIA,
-      fecha: hoy.toISOString().slice(0, 10),
-      paginas: paginas || 0,
-      portada: portada,
-      descripcion: 'Publicada el ' + formatearFecha(hoy.toISOString().slice(0, 10)) +
-        '. Puedes editar esta descripción desde el botón de información del lector.',
-      bytes: bytes,
-      propia: true
-    };
+    let portada = null;
+    let paginas = Number(datosFormulario.paginas) || 0;
+    try {
+      ui.pubEstado.textContent = 'Generando la portada…';
+      const resultado = await generarPortada(bytes.slice(0), 5000);
+      portada = dataURLABlob(resultado.portada);
+      paginas = resultado.paginas;
+    } catch (e) {
+      console.warn('No se pudo generar la portada:', e);
+      ui.pubEstado.textContent = 'Subiendo sin portada…';
+    }
 
-    await guardarPublicacion(pub);
-    estado.publicadas.unshift(pub);
+    const formulario = new FormData();
+    formulario.append('pdf', new Blob([bytes], { type: 'application/pdf' }),
+      archivo.name || 'revista.pdf');
+    if (portada) formulario.append('portada', portada, 'portada.jpg');
+    formulario.append('titulo', datosFormulario.titulo || bonitarNombre(archivo.name));
+    formulario.append('categoria', datosFormulario.categoria || 'General');
+    formulario.append('descripcion', datosFormulario.descripcion || '');
+    formulario.append('paginas', String(paginas || 0));
+
+    ui.pubEstado.textContent = 'Subiendo la revista…';
+    const respuesta = await fetch(RUTA_API_BIBLIOTECA, {
+      method: 'POST',
+      cache: 'no-store',
+      signal: control.signal,
+      headers: { 'X-Clave-Editor': HUELLA_CLAVE_SITIO },
+      body: formulario
+    });
+    const datos = await respuesta.json().catch(() => null);
+    if (!respuesta.ok) {
+      throw new Error((datos && datos.error) || ('HTTP ' + respuesta.status));
+    }
+    const publicacion = datos && datos.publicacion;
+    if (!publicacion || !publicacion.id) {
+      throw new Error('El servidor no devolvió la revista publicada.');
+    }
+
+    estado.biblioteca = [publicacion]
+      .concat(estado.biblioteca.filter((p) => p.id !== publicacion.id));
     renderizarChips();
     renderizarEstanteria();
-    ocultarOverlayCarga();
-    avisar('«' + pub.titulo + '» ya está en tu biblioteca.' +
-      (estado.guardadoLocal ? '' : ' (Se guardará solo mientras dure la sesión.)'));
+    cerrarModalPublicar(true);
+    avisar('«' + publicacion.titulo + '» ya está en la biblioteca de todos.');
   } catch (e) {
     console.error(e);
-    ocultarOverlayCarga();
-    avisar('No se pudo publicar el archivo: ' + ((e && e.message) || e), true);
+    const detalle = (e && e.name === 'AbortError')
+      ? 'La subida tardó demasiado. Inténtalo de nuevo.'
+      : ((e && e.message) || e);
+    ui.pubEstado.textContent = '';
+    ui.pubError.textContent = 'No se pudo publicar: ' + detalle;
+    ui.pubError.hidden = false;
   } finally {
-    pararVigilante();
+    clearTimeout(limiteTiempo);
     estado.publicando = false;
-    ui.inputPublicar.value = '';
+    ui.btnConfirmarPublicar.disabled = false;
+    ui.btnCerrarPublicar.disabled = false;
+    ui.btnCancelarPublicar.disabled = false;
   }
 }
 
@@ -974,12 +1202,16 @@ async function abrirPDF(bytes, meta) {
     estado.altoBase = vp1.height;
 
     // Construimos las páginas del libro (div > img; nunca <canvas>:
-    // StPageFlip clona el DOM y los canvas clonados saldrían en blanco)
+    // StPageFlip clona el DOM y los canvas clonados saldrían en blanco).
+    // Solo se montan las primeras MAX_PAGINAS_VISIBLES; el PDF completo
+    // sigue disponible para descargar.
     const elems = [];
     estado.imgs = [];
     estado.paginas = [];
     estado.divs = [];
-    for (let i = 1; i <= doc.numPages; i++) {
+    estado.totalPaginasPdf = doc.numPages;
+    const visibles = Math.min(doc.numPages, MAX_PAGINAS_VISIBLES);
+    for (let i = 1; i <= visibles; i++) {
       const pdfPage = await doc.getPage(i);
 
       const div = document.createElement('div');
@@ -987,7 +1219,7 @@ async function abrirPDF(bytes, meta) {
       div.dataset.density = 'hard';
 
       const img = document.createElement('img');
-      img.alt = 'Página ' + i + ' de ' + doc.numPages;
+      img.alt = 'Página ' + i + ' de ' + visibles;
       img.decoding = 'async';
       img.draggable = false;
       img.dataset.pagina = String(i);
@@ -1037,6 +1269,7 @@ async function abrirPDF(bytes, meta) {
     dimensionarLibro();
     actualizarNavegacion();
     actualizarDatosPanel();
+    actualizarLimiteLectura();
     ocultarOverlayCarga();
 
     // Pintado progresivo: primero las dos visibles, luego el resto
@@ -1053,6 +1286,22 @@ async function abrirPDF(bytes, meta) {
     avisar('No se pudo leer el PDF: ' + ((e && e.message) || e), true);
     return false;
   }
+}
+
+/** Muestra cuántas páginas se pueden hojear y recuerda que el PDF completo
+    se descarga desde la barra del lector. */
+function actualizarLimiteLectura() {
+  if (!ui.limiteLectura) return;
+  const visibles = estado.paginas.length;
+  const total = estado.totalPaginasPdf || visibles;
+  if (!visibles || total <= visibles) {
+    ui.limiteLectura.hidden = true;
+    ui.limiteLectura.textContent = '';
+    return;
+  }
+  ui.limiteLectura.hidden = false;
+  ui.limiteLectura.textContent =
+    'Vista de ' + visibles + ' de ' + total + ' páginas · descarga el PDF para leerlo completo';
 }
 
 /** Rasteriza la página i (0-based) del PDF a un <img> del flipbook. */
@@ -1099,7 +1348,7 @@ async function pintarPrioridad(indice) {
   }
 }
 
-/** Devuelve los bytes del PDF de una publicación (propia o del catálogo). */
+/** Devuelve los bytes del PDF de una publicación de la biblioteca. */
 async function obtenerBytesPublicacion(pub) {
   if (pub.bytes) {
     return pub.bytes instanceof Uint8Array ? pub.bytes : new Uint8Array(pub.bytes);
@@ -1109,13 +1358,16 @@ async function obtenerBytesPublicacion(pub) {
   return new Uint8Array(await respuesta.arrayBuffer());
 }
 
-/** Abre una publicación de la biblioteca (manifiesto o propia). */
+/** Abre una publicación de la biblioteca compartida. */
 async function abrirPublicacion(pub) {
   if (estado.abriendo) return;
   estado.abriendo = true;
   estado.pubAbierta = pub;
   mostrarOverlayCarga('Abriendo «' + pub.titulo + '»…',
-    (pub.numero ? pub.numero + ' · ' : '') + (pub.paginas ? pub.paginas + ' páginas' : ''));
+    (pub.numero ? pub.numero + ' · ' : '') +
+    (pub.paginas
+      ? Math.min(pub.paginas, MAX_PAGINAS_VISIBLES) + ' de ' + pub.paginas + ' páginas'
+      : ''));
   const pararVigilante = vigilanteCarga(45);
 
   try {
@@ -1155,14 +1407,24 @@ function abrirVistaPrevia(pub) {
   pubPrevia = pub;
   focoAntesPrevia = document.activeElement;
 
-  ui.previaCategoria.textContent = pub.categoria ||
-    (pub.propia ? 'Tu publicación' : 'Biblioteca');
+  ui.previaCategoria.textContent = pub.categoria || 'Biblioteca compartida';
   ui.previaTitulo.textContent = pub.titulo || 'Revista';
+  const totalPaginas = Number(pub.paginas) || 0;
   ui.previaMeta.textContent = [
     pub.numero,
-    pub.paginas ? pub.paginas + ' páginas' : null,
+    totalPaginas
+      ? (totalPaginas > MAX_PAGINAS_VISIBLES
+        ? 'Vista de ' + MAX_PAGINAS_VISIBLES + ' de ' + totalPaginas + ' páginas'
+        : totalPaginas + (totalPaginas === 1 ? ' página' : ' páginas'))
+      : null,
     pub.fecha ? formatearFecha(pub.fecha) : null
   ].filter(Boolean).join(' · ');
+  if (ui.previaMuestraNota) {
+    ui.previaMuestraNota.textContent = totalPaginas > MAX_PAGINAS_VISIBLES
+      ? 'Muestra de 2 páginas. En el lector verás hasta ' + MAX_PAGINAS_VISIBLES +
+        '; descarga el PDF para leer las ' + totalPaginas + '.'
+      : 'Solo unas páginas. Abre la revista para verla completa.';
+  }
   ui.previaDescripcion.textContent = descripcionDePublicacion(pub);
   actualizarEdicionDescripcionPrevia();
 
@@ -1205,7 +1467,7 @@ function actualizarEdicionDescripcionPrevia() {
     ui.previaDescripcion.setAttribute('role', 'textbox');
     ui.previaDescripcion.setAttribute('aria-multiline', 'true');
     ui.previaDescripcion.setAttribute('aria-label',
-      'Descripción de la revista. Editable en este navegador.');
+      'Descripción de la revista. Editable por el equipo; pulsa Guardar para publicarla.');
   } else {
     ui.previaDescripcion.removeAttribute('contenteditable');
     ui.previaDescripcion.removeAttribute('role');
@@ -1321,7 +1583,7 @@ function nombreArchivoPdf(titulo) {
     .toLowerCase() || 'revista';
 }
 
-/** Descarga el PDF original de una publicación propia o del catálogo. */
+/** Descarga el PDF completo de una publicación de la biblioteca. */
 async function descargarPublicacion(pub) {
   if (!pub) return;
   try {
@@ -1419,7 +1681,12 @@ function destruirLibro() {
   ui.contenedorLibro.innerHTML = '';
   estado.imgs = [];
   estado.paginas = [];
+  estado.totalPaginasPdf = 0;
   estado.divs = [];
+  if (ui.limiteLectura) {
+    ui.limiteLectura.hidden = true;
+    ui.limiteLectura.textContent = '';
+  }
   if (estado.doc) {
     try { estado.doc.destroy(); } catch { /* noop */ }
     estado.doc = null;
@@ -1726,8 +1993,8 @@ function descripcionPorDefecto() {
   if (estado.pubAbierta && estado.pubAbierta.descripcion) {
     return estado.pubAbierta.descripcion;
   }
-  return 'Sin descripción. Escribe aquí la tuya: se guarda ' +
-    'automáticamente en este navegador.';
+  return 'Sin descripción. Escribe aquí la tuya: se guarda al pulsar ' +
+    '«Guardar» en la barra de edición.';
 }
 
 function cargarTextoInfo() {
@@ -1748,8 +2015,10 @@ function actualizarDatosPanel() {
   const meta = estado.archivo || {};
   const pub = estado.pubAbierta;
   ui.datoArchivo.textContent = meta.nombre || (pub ? pub.titulo : '—');
-  ui.datoPaginas.textContent = estado.paginas.length
-    ? String(estado.paginas.length)
+  const visibles = estado.paginas.length;
+  const total = estado.totalPaginasPdf || 0;
+  ui.datoPaginas.textContent = visibles
+    ? (total > visibles ? visibles + ' de ' + total + ' (vista)' : String(visibles))
     : (pub && pub.paginas ? String(pub.paginas) : '—');
   ui.datoFormato.textContent = meta.peso || '—';
   ui.datoFecha.textContent = formatearFecha(meta.fecha || (pub && pub.fecha)) || '—';
@@ -2206,6 +2475,9 @@ function alternarModoEdicionSitio(activo) {
     else el.removeAttribute('contenteditable');
   });
   actualizarEdicionDescripcionPrevia();
+  actualizarControlesBiblioteca();
+  renderizarChips();
+  renderizarEstanteria();
 
   if (activo) {
     if (estado.vista === 'lector') mostrarVista('biblioteca');
@@ -2216,9 +2488,11 @@ function alternarModoEdicionSitio(activo) {
     estado.sitioEnLinea ? 'ok' : '');
     avisar('Configuración: pulsa un texto para escribir, «Cambiar foto» en ' +
       'las fotos, «Agregar bloque» para añadir contenido nuevo y ✕ en los ' +
-      'bloques para ocultarlos. Al terminar, pulsa «Guardar» para aplicar ' +
-      'los cambios en todos los dispositivos.');
+      'bloques para ocultarlos. En la Biblioteca puedes publicar o retirar ' +
+      'revistas. Al terminar, pulsa «Guardar» para aplicar los cambios en ' +
+      'todos los dispositivos.');
   } else {
+    cerrarModalPublicar(false);
     quitarBotonesBloque();
     guardarSitio();
     marcarEstadoGuardado('');
@@ -2639,27 +2913,7 @@ function mostrarVista(v) {
   }
 }
 
-/* ========================= 20. CATÁLOGO =================================== */
-
-async function cargarCatalogo() {
-  try {
-    const respuesta = await fetch('assets/revistas.json', { cache: 'no-store' });
-    if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
-    const datos = await respuesta.json();
-    // Un catálogo vacío es válido: la biblioteca empieza sin revistas de
-    // ejemplo y solo muestra lo que publique el equipo.
-    if (Array.isArray(datos)) {
-      estado.catalogo = datos;
-      return;
-    }
-    throw new Error('manifiesto ilegible');
-  } catch (e) {
-    console.info('Usando el catálogo residente (revistas.json ilegible):', e && e.message);
-    estado.catalogo = CATALOGO_RESIDENTE.map((c) => Object.assign({}, c));
-  }
-}
-
-/* ========================= 21. EVENTOS ==================================== */
+/* ========================= 20. EVENTOS ==================================== */
 
 let temporizadorResize = null;
 
@@ -2678,10 +2932,26 @@ function enlazarEventos() {
     renderizarEstanteria();
   });
 
-  ui.btnPublicar.addEventListener('click', () => ui.inputPublicar.click());
-  ui.btnPublicarVacio.addEventListener('click', () => ui.inputPublicar.click());
-  ui.inputPublicar.addEventListener('change', () => {
-    publicarPDF(ui.inputPublicar.files && ui.inputPublicar.files[0]);
+  ui.btnPublicar.addEventListener('click', () => abrirModalPublicar());
+  ui.btnPublicarVacio.addEventListener('click', () => abrirModalPublicar());
+  ui.btnRecargarBiblioteca.addEventListener('click', cargarBiblioteca);
+  ui.formPublicar.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const archivo = (ui.pubArchivo.files && ui.pubArchivo.files[0]) ||
+      estado.archivoPublicar;
+    publicarPDF(archivo, {
+      titulo: ui.pubTitulo.value.trim(),
+      categoria: ui.pubCategoria.value.trim(),
+      descripcion: ui.pubDescripcion.value.trim()
+    });
+  });
+  ui.pubArchivo.addEventListener('change', () => {
+    actualizarInfoArchivoPublicar(ui.pubArchivo.files && ui.pubArchivo.files[0]);
+  });
+  ui.btnCerrarPublicar.addEventListener('click', () => cerrarModalPublicar(false));
+  ui.btnCancelarPublicar.addEventListener('click', () => cerrarModalPublicar(false));
+  ui.modalPublicar.addEventListener('click', (e) => {
+    if (e.target === ui.modalPublicar) cerrarModalPublicar(false);
   });
 
   /* --- Lector: barra y dock --- */
@@ -2840,6 +3110,9 @@ function enlazarEventos() {
   ui.btnSiguiente.addEventListener('click', () => { if (estado.flip) estado.flip.flipNext(); });
   ui.btnRail.addEventListener('click', alternarRail);
   ui.btnPantallaCompleta.addEventListener('click', alternarPantallaCompleta);
+  ui.btnDescargarLector.addEventListener('click', () => {
+    if (estado.pubAbierta) descargarPublicacion(estado.pubAbierta);
+  });
 
   ui.sliderPagina.addEventListener('input', () => {
     if (!estado.flip) return;
@@ -2873,13 +3146,16 @@ function enlazarEventos() {
   /* --- Teclado global --- */
   document.addEventListener('keydown', (e) => {
     // Los diálogos nuevos atrapan el foco y se cierran con Escape.
-    const dialogoAbierto = !ui.modalVistaPrevia.classList.contains('oculto')
-      ? ui.modalVistaPrevia
-      : (!ui.modalApariencia.classList.contains('oculto') ? ui.modalApariencia : null);
+    const dialogoAbierto = !ui.modalPublicar.classList.contains('oculto')
+      ? ui.modalPublicar
+      : (!ui.modalVistaPrevia.classList.contains('oculto')
+        ? ui.modalVistaPrevia
+        : (!ui.modalApariencia.classList.contains('oculto') ? ui.modalApariencia : null));
     if (dialogoAbierto) {
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (dialogoAbierto === ui.modalVistaPrevia) cerrarVistaPrevia();
+        if (dialogoAbierto === ui.modalPublicar) cerrarModalPublicar(false);
+        else if (dialogoAbierto === ui.modalVistaPrevia) cerrarVistaPrevia();
         else alternarApariencia(false);
         return;
       }
@@ -2935,8 +3211,13 @@ function enlazarEventos() {
     document.body.classList.remove('arastrando');
     const archivo = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (!archivo) return;
-    if (estado.vista === 'lector') cargarArchivoLocal(archivo);
-    else publicarPDF(archivo);
+    if (estado.vista === 'lector' || SIN_API_BIBLIOTECA) {
+      cargarArchivoLocal(archivo);
+    } else if (estado.modoEdicionSitio) {
+      abrirModalPublicar(archivo);
+    } else {
+      avisar('Solo el equipo puede publicar revistas. Entra en Configuración.', true);
+    }
   });
 
   /* --- Redimensionar y pantalla completa --- */
@@ -2974,13 +3255,7 @@ async function iniciar() {
   aplicarTema();
   aplicarEdicionesSitio();
 
-  await cargarCatalogo();
-  estado.publicadas = await listarPublicaciones();
-  if (!estado.guardadoLocal) {
-    avisar('Tu navegador no permite guardar publicaciones de forma permanente ' +
-      '(probablemente por abrir el archivo directamente): durarán solo esta sesión.');
-  }
-
+  await cargarBiblioteca();
   renderizarChips();
   renderizarEstanteria();
   aplicarRuta();
@@ -3009,7 +3284,10 @@ window.__interno = {
   estado,
   abrirPublicacion,
   cargarArchivoLocal,
+  cargarBiblioteca,
   publicarPDF,
+  abrirModalPublicar,
+  cerrarModalPublicar,
   renderizarEstanteria,
   renderizarChips,
   mostrarVista,
@@ -3046,5 +3324,5 @@ window.__interno = {
   abrirPanelPlantillas,
   cerrarPanelPlantillas,
   plantillas: PLANTILLAS_BLOQUE,
-  cerrarAviso: () => ui.aviso.classList.remove('visible')
+  cerrarAviso: cerrarAviso
 };

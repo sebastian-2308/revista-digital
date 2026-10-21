@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="description" content="Noti-Misión · sitio del grupo juvenil con biblioteca de revistas digitales tipo flipbook: publica PDFs y léelos con volteo 3D, sonido de página y pantalla completa.">
+  <meta name="description" content="Noti-Misión · sitio del grupo juvenil con biblioteca compartida de revistas digitales: hojea hasta 12 páginas de cada PDF, descarga el archivo completo y disfruta del volteo 3D con sonido de página.">
   <meta name="theme-color" content="#080f13">
 
   <title>Noti-Misión · Sitio y biblioteca</title>
@@ -23,9 +23,9 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" async></script>
   <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" async></script>
-  <script src="app.js?v=16" defer></script>
+  <script src="app.js?v=17" defer></script>
 
-  <link rel="stylesheet" href="styles.css?v=20">
+  <link rel="stylesheet" href="styles.css?v=21">
 </head>
 
 <body class="vista-biblioteca">
@@ -988,19 +988,18 @@
         </div>
 
         <button id="btnPublicar" class="boton boton--acento" type="button"
-                title="Añadir un PDF a tu biblioteca">
+                title="Publicar un PDF en la biblioteca compartida" hidden>
           <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
           <span class="boton__texto">Publicar revista</span>
         </button>
-        <input type="file" id="inputPublicar" accept="application/pdf,.pdf" hidden>
       </div>
 
       <section class="biblioteca__cabecera">
         <p class="epigrafe" id="contarRevistas">Cargando…</p>
         <h2 data-editable="biblioteca.titulo">Nuestra biblioteca</h2>
         <p class="biblioteca__lema texto-guia" data-editable="biblioteca.lema">
-          Elige una portada para hojearla, abre «Vista previa» para conocer la
-          edición o descarga el PDF. También puedes publicar uno propio.
+          Revistas del grupo para hojear en línea. Puedes ver las primeras
+          12 páginas y descargar el PDF completo.
         </p>
         <div class="chips" id="chipsCategorias" role="tablist" aria-label="Filtrar por categoría"></div>
       </section>
@@ -1012,8 +1011,11 @@
           La biblioteca está vacía. Publica la primera revista para empezar.
         </p>
         <div class="biblioteca__vacio-acciones">
-          <button class="boton boton--acento" type="button" id="btnPublicarVacio">
+          <button class="boton boton--acento" type="button" id="btnPublicarVacio" hidden>
             Publicar la primera
+          </button>
+          <button class="boton boton--suave" type="button" id="btnRecargarBiblioteca" hidden>
+            Reintentar
           </button>
           <button class="boton" type="button" id="btnVerTodas">Ver todas</button>
         </div>
@@ -1075,9 +1077,14 @@
     <div class="edicion">
       <span id="kickerEdicion" class="edicion__kicker">Edición</span>
       <h1 id="tituloEdicion" class="edicion__titulo">Revista</h1>
+      <span id="limiteLectura" class="edicion__limite" hidden></span>
     </div>
 
     <div class="acciones">
+      <button id="btnDescargarLector" class="boton boton--icono" type="button"
+              title="Descargar el PDF completo" aria-label="Descargar el PDF completo">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+      </button>
       <button id="btnSonido" class="boton boton--icono" type="button" aria-pressed="true"
               title="Activar o silenciar el sonido de página">
         <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path class="sonido__onda" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="sonido__onda" d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
@@ -1141,7 +1148,7 @@
 
   <!-- Indicador de arrastre de archivos -->
   <div class="zona-arrastre" id="zonaArrastre" aria-hidden="true">
-    <span>Suelta aquí tu archivo <strong>.pdf</strong> para publicarlo</span>
+    <span>Suelta aquí tu archivo <strong>.pdf</strong></span>
   </div>
 
   <!-- Overlay de carga -->
@@ -1323,6 +1330,68 @@
     </div>
   </div>
 
+  <!-- Overlay: publicar una revista en la biblioteca compartida -->
+  <div class="overlay oculto" id="modalPublicar" role="dialog"
+       aria-modal="true" aria-labelledby="publicarTitulo">
+    <div class="overlay__caja publicar">
+      <button id="btnCerrarPublicar" class="boton boton--icono publicar__cerrar"
+              type="button" aria-label="Cerrar el formulario de publicación">
+        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+
+      <p class="epigrafe">Biblioteca compartida</p>
+      <h2 id="publicarTitulo">Publicar una revista</h2>
+      <p class="publicar__ayuda">
+        Solo el equipo puede publicar. El PDF se verá en todos los dispositivos;
+        los lectores podrán hojear las primeras 12 páginas y descargar el archivo completo.
+      </p>
+
+      <form id="formPublicar" class="publicar__form">
+        <label class="publicar__archivo" for="pubArchivo">
+          <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
+          <span>Elegir PDF</span>
+          <input id="pubArchivo" class="publicar__archivo-input" type="file"
+                 accept="application/pdf,.pdf">
+        </label>
+        <p class="publicar__archivo-info" id="pubArchivoInfo"></p>
+
+        <label class="publicar__campo">
+          <span>Título</span>
+          <input id="pubTitulo" type="text" maxlength="140" required
+                 placeholder="Nombre de la revista" autocomplete="off">
+        </label>
+
+        <label class="publicar__campo">
+          <span>Categoría</span>
+          <input id="pubCategoria" type="text" maxlength="60" list="categoriasPublicar"
+                 placeholder="Formación, Misiones, Juventud…" autocomplete="off">
+        </label>
+        <datalist id="categoriasPublicar">
+          <option value="Formación"></option>
+          <option value="Misiones"></option>
+          <option value="Juventud"></option>
+          <option value="Noticias"></option>
+          <option value="Oración"></option>
+          <option value="Otros"></option>
+        </datalist>
+
+        <label class="publicar__campo">
+          <span>Descripción</span>
+          <textarea id="pubDescripcion" rows="3" maxlength="600"
+                    placeholder="Una breve presentación de esta edición."></textarea>
+        </label>
+
+        <p class="publicar__estado" id="pubEstado" aria-live="polite"></p>
+        <p class="publicar__error" id="pubError" role="alert" hidden></p>
+
+        <footer class="publicar__acciones">
+          <button id="btnCancelarPublicar" class="boton boton--suave" type="button">Cancelar</button>
+          <button id="btnConfirmarPublicar" class="boton boton--acento" type="submit">Publicar</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
   <!-- Overlay: vista previa de una revista antes de leerla o descargarla -->
   <div class="overlay oculto" id="modalVistaPrevia" role="dialog"
        aria-modal="true" aria-labelledby="previaTitulo">
@@ -1348,8 +1417,8 @@
         <div class="vista-previa__muestra" id="previaMuestra" hidden>
           <p class="vista-previa__muestra-titulo">Muestra</p>
           <div class="vista-previa__muestras" id="previaMuestras"></div>
-          <p class="vista-previa__muestra-nota">
-            Solo unas páginas. Abre la revista para verla completa.
+          <p class="vista-previa__muestra-nota" id="previaMuestraNota">
+            Solo una muestra. El lector muestra hasta 12 páginas; descarga el PDF para verlo completo.
           </p>
         </div>
       </div>
@@ -1361,7 +1430,7 @@
         <p class="texto-guia vista-previa__descripcion" id="previaDescripcion"
            spellcheck="false"></p>
         <p class="vista-previa__edicion" id="previaAyudaEdicion" hidden>
-          Modo edición: pulsa la descripción para cambiarla. Se guarda en este navegador.
+          Modo edición: pulsa la descripción para cambiarla. Después pulsa «Guardar» en la barra.
         </p>
         <div class="vista-previa__acciones">
           <button id="btnLeerPrevia" class="boton boton--acento" type="button">
@@ -1376,7 +1445,7 @@
           </button>
         </div>
         <p class="nota">
-          La descarga entrega el PDF original, tal como se publicó.
+          En el lector verás hasta 12 páginas. La descarga entrega el PDF completo, tal como se publicó.
         </p>
       </div>
     </div>
